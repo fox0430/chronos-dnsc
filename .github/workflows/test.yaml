@@ -34,12 +34,23 @@ jobs:
 
     name: Test on ${{ matrix.nim-version }}
     steps:
+      - uses: actions/checkout@v4
+
       - name: Cache nimble
         id: cache-nimble
         uses: actions/cache@v4
         with:
           path: ~/.nimble
           key: unit-tests-nimble
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-${{ hashFiles('*.nimble') }}
+          restore-keys: |
+            ${{ runner.os }}-nimble-
 
       - uses: jiro4989/setup-nim-action@v1
         with:
