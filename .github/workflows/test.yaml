@@ -32,18 +32,20 @@ jobs:
           - 'stable'
           - 'devel'
 
-    - name: Cache nimble
-      id: cache-nimble
-      uses: actions/cache@v4
-      with:
-        path: ~/.nimble
-        key: unit-tests-nimble
+    name: Test on ${{ matrix.nim-version }}
+    steps:
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble
+          key: unit-tests-nimble
 
-    - uses: jiro4989/setup-nim-action@v1
-      with:
-        nim-version: ${{ env.NIM_VERSION }}
+      - uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: ${{ env.NIM_VERSION }}
 
-    - name: Run unit test
-      run: |
-        nimble install -y
-        nimble test -y
+      - name: Run unit test
+        run: |
+          nimble install -y
+          nimble test -y
