@@ -21,23 +21,16 @@ permissions:
 
 jobs:
   test:
-    name: build ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 30
-    needs: before
     strategy:
       matrix:
         os:
-          - ubuntu-latest
-          # - macOS-latest
-          # - windows-latest
-    env:
-      NIM_VERSION: stable
-    steps:
-    - uses: actions/checkout@v4
-    - run: |
-        sudo apt-get update -yqq
-        sudo apt-get install -y gcc
+          - 'ubuntu-latest'
+        nim-version:
+          - '1.6.16'
+          - 'stable'
+          - 'devel'
 
     - name: Cache nimble
       id: cache-nimble
