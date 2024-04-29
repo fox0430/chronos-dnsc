@@ -1,0 +1,65 @@
+name: Unit tests
+
+on:
+  push:
+    paths:
+      - '.github/workflows/test.yaml'
+      - 'dnsc.nimble'
+      - 'src/**'
+      - 'tests/**'
+    branches:
+      - master
+  pull_request:
+    paths:
+      - '.github/workflows/test.yaml'
+      - 'dnsc.nimble'
+      - 'src/**'
+      - 'tests/**'
+
+permissions:
+  contents: read
+
+jobs:
+  before:
+    name: Test on ${{ matrix.nim-version }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      matrix:
+        nim-version:
+          - '1.6.16'
+          - 'stable'
+          - 'devel'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache choosenim
+        id: cache-choosenim
+        uses: actions/cache@v4
+        with:
+          path: ~/.choosenim
+          key: ${{ runner.os }}-choosenim-${{ matrix.nim-version }}
+          restore-keys: |
+            ${{ runner.os }}-choosenim-${{ matrix.nim-version }}-
+
+      - name: Cache nimble
+        id: cache-nimble
+        uses: actions/cache@v4
+        with:
+          path: ~/.nimble
+          key: ${{ runner.os }}-nimble-${{ hashFiles('*.nimble') }}
+          restore-keys: |
+            ${{ runner.os }}-nimble-
+
+      - uses: jiro4989/setup-nim-action@v1
+        with:
+          nim-version: "${{ matrix.nim-version }}"
+
+      - name: nimble install
+        run: |
+          nimble install -y
+
+      - name: Run unit test
+        run: |
+          nimble test
