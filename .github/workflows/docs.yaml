@@ -1,0 +1,35 @@
+name: Docs
+
+on:
+  push:
+    paths:
+      - '.github/workflows/docs.yaml'
+      - 'dnsc.nimble'
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  docs:
+    env:
+      NIM_VERSION: stable
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - name: Cache choosenim
+      id: cache-choosenim
+      uses: actions/cache@v4
+      with:
+        path: ~/.choosenim
+        key: ${{ runner.os }}-choosenim-${{ env.NIM_VERSION }}
+
+    - uses: jiro4989/setup-nim-action@v1
+    - run: nimble doc src/dnsc -y
+    - name: Deploy
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./src/htmldocs
+        tag_message: 'Deployment ${{ github.ref_name }}'
