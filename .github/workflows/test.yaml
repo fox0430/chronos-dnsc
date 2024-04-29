@@ -20,19 +20,17 @@ permissions:
   contents: read
 
 jobs:
-  test:
-    runs-on: ${{ matrix.os }}
+  before:
+    name: Test on ${{ matrix.nim-version }}
+    runs-on: ubuntu-latest
     timeout-minutes: 30
     strategy:
       matrix:
-        os:
-          - 'ubuntu-latest'
         nim-version:
           - '1.6.16'
           - 'stable'
           - 'devel'
 
-    name: Test on ${{ matrix.nim-version }}
     steps:
       - uses: actions/checkout@v4
 
@@ -50,13 +48,18 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.nimble
-          key: unit-tests-nimble
+          key: ${{ runner.os }}-nimble-${{ hashFiles('*.nimble') }}
+          restore-keys: |
+            ${{ runner.os }}-nimble-
 
       - uses: jiro4989/setup-nim-action@v1
         with:
-          nim-version: ${{ env.NIM_VERSION }}
+          nim-version: "${{ matrix.nim-version }}"
+
+      - name: nimble install
+        run: |
+          nimble install -y
 
       - name: Run unit test
         run: |
-          nimble install -y
-          nimble test -y
+          nimble test
