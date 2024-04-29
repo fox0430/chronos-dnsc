@@ -53,8 +53,6 @@ const
   ndnsDnsServerIp* {.strdefine.} = "8.8.8.8"
     ## Default dns server ip for queries. You can change by compiling with
     ## `-d:ndnsDnsServerIp=1.1.1.1`.
-  defaultIpDns* {.deprecated: "Use `ndnsDnsServerIp`".} = ndnsDnsServerIp
-    ## Kept only for compatibility reasons.
   ndnsDnsServerIpDomain = case parseIpAddress(ndnsDnsServerIp).family
                           of IpAddressFamily.IPv6: Domain.AF_INET6
                           of IpAddressFamily.IPv4: Domain.AF_INET
