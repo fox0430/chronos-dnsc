@@ -442,20 +442,3 @@ proc resolveDnsBL*(client: DnsClient,
   ##   to receive the response for an unlimited time.
 
   result = await resolveIpv4(client, prepareDnsBL(strIp, dnsbl))
-
-when isMainModule:
-  block:
-    let header = initHeader(randId(), rd = true)
-    let question = initQuestion("nim-lang.org", QType.A, QClass.IN)
-    let msg = initMessage(header, @[question])
-
-    let client = initDnsClient()
-    echo waitFor dnsQuery(client, msg)
-
-  block:
-    let header = initHeader(randId(), rd = true)
-    let question = initQuestion("nim-lang.org", QType.A, QClass.IN)
-    let msg = initMessage(header, @[question])
-
-    let client = initDnsClient()
-    echo waitFor dnsTcpQuery(client, msg)
