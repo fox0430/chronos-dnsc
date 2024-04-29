@@ -73,12 +73,18 @@ suite "dnsTcpQuery":
     check r.answers[0].rdlength == 4
 
 suite "resolveIpv4":
+  proc execDig(domain: string): seq[string] {.raises: [].} =
+    try:
+      result = execCmdEx("dig +short nim-lang.org")
+        .output
+        .splitLines
+        .filterIt(it.len > 0)
+        .sorted
+    except:
+      result = @[]
+
   asyncTest "nim-lang.org":
     let client = initDnsClient()
     let r = await client.resolveIpv4("nim-lang.org")
 
-    check r.sorted == execCmdEx("dig +short nim-lang.org")
-      .output
-      .splitLines
-      .filterIt(it.len > 0)
-      .sorted
+    check r.sorted == execDig("nim-lang.org")
