@@ -26,6 +26,9 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macOS-latest'
         nim-version:
           - '1.6.16'
           - 'stable'
