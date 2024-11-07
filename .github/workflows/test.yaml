@@ -26,6 +26,9 @@ jobs:
     timeout-minutes: 30
     strategy:
       matrix:
+        os:
+          - 'ubuntu-latest'
+          - 'macOS-latest'
         nim-version:
           - '1.6.16'
           - 'stable'
@@ -33,15 +36,6 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Cache choosenim
-        id: cache-choosenim
-        uses: actions/cache@v4
-        with:
-          path: ~/.choosenim
-          key: ${{ runner.os }}-choosenim-${{ matrix.nim-version }}
-          restore-keys: |
-            ${{ runner.os }}-choosenim-${{ matrix.nim-version }}-
 
       - name: Cache nimble
         id: cache-nimble
@@ -52,9 +46,11 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-nimble-
 
-      - uses: jiro4989/setup-nim-action@v1
+      - name: Setup Nim
+        uses: jiro4989/setup-nim-action@v2
         with:
-          nim-version: "${{ matrix.nim-version }}"
+          nim-version: ${{ matrix.nim-version }}
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: nimble install
         run: |
