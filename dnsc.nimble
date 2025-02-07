@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.1.0"
+version       = "0.1.2"
 author        = "fox0430"
 description   = "DNS client implementation using chronos"
 license       = "MIT"
