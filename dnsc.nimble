@@ -10,6 +10,6 @@ srcDir        = "src"
 # Dependencies
 
 requires "nim >= 1.6.16",
-         "dnsprotocol >= 0.2.1",
+         "dnsprotocol >= 0.2.2",
          "chronos >= 4.0.2",
          "stew >= 0.1.0"
