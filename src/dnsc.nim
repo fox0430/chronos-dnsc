@@ -356,8 +356,7 @@ proc resolveIpv4*(client: DnsClient,
 
   if rmsg.header.flags.rcode == RCode.NoError:
     for rr in rmsg.answers:
-      if rr.name != msg.questions[0].qname or rr.`type` != Type.A or
-        rr.class != Class.IN: continue
+      if rr.`type` != Type.A or rr.class != Class.IN: continue
 
       let ip = IpAddress(family: IpAddressFamily.IPv4,
                          address_v4: RDataA(rr.rdata).address)
@@ -386,8 +385,7 @@ proc resolveIpv6*(client: DnsClient,
 
   if rmsg.header.flags.rcode == RCode.NoError:
     for rr in rmsg.answers:
-      if rr.name != msg.questions[0].qname or rr.`type` != Type.AAAA or
-        rr.class != Class.IN: continue
+      if rr.`type` != Type.AAAA or rr.class != Class.IN: continue
 
       let ip = IpAddress(family: IpAddressFamily.IPv6,
                          address_v6: RDataAAAA(rr.rdata).address)
