@@ -6,12 +6,15 @@
 
 import std/[nativesockets, random]
 
-import pkg/[chronos,
-            chronos/transports/common,
-            chronos/osdefs,
-            chronos/apps/http/httpcommon,
-            dnsprotocol,
-            stew/endians2]
+import
+  pkg/[
+    chronos,
+    chronos/transports/common,
+    chronos/osdefs,
+    chronos/apps/http/httpcommon,
+    dnsprotocol,
+    stew/endians2,
+  ]
 
 export chronos, dnsprotocol, Port
 
@@ -32,35 +35,42 @@ type
 
   UnexpectedDisconnectionError* = object of CatchableError
     ## Raised if an unexpected disconnect occurs (only TCP).
+
   ResponseIpNotEqualError* = object of CatchableError
     ## Raised if the IP that sent the response is different from the IP that
     ## received the query (only UDP).
+
   ResponsePortNotEqualError* = object of CatchableError
     ## Raised if the Port that sent the response is different from the Port that
     ## received the query (only UDP).
+
   ResponseIdNotEqualError* = object of CatchableError
     ## Raised if the query ID does not match the response ID.
+
   IsNotAnResponseError* = object of CatchableError
     ## Raised if not a response (!= QR.Response).
+
   OpCodeNotEqualError* = object of CatchableError
     ## Raised if the OpCode is different between the query and the response.
 
 const
-  ipv4Arpa = "in-addr.arpa"
-    ## Special domain reserved for reverse IP lookup for IPv4
-  ipv6Arpa = "ip6.arpa"
-    ## Special domain reserved for IP reverse query for IPv6
+  ipv4Arpa = "in-addr.arpa" ## Special domain reserved for reverse IP lookup for IPv4
+  ipv6Arpa = "ip6.arpa" ## Special domain reserved for IP reverse query for IPv6
   ndnsDnsServerIp* {.strdefine.} = "8.8.8.8"
     ## Default dns server ip for queries. You can change by compiling with
     ## `-d:ndnsDnsServerIp=1.1.1.1`.
-  ndnsDnsServerIpDomain = case parseIpAddress(ndnsDnsServerIp).family
-                          of IpAddressFamily.IPv6: Domain.AF_INET6
-                          of IpAddressFamily.IPv4: Domain.AF_INET
-  ndnsClient = DnsClient(ip: ndnsDnsServerIp, port: Port(53), domain: ndnsDnsServerIpDomain)
+  ndnsDnsServerIpDomain =
+    case parseIpAddress(ndnsDnsServerIp).family
+    of IpAddressFamily.IPv6: Domain.AF_INET6
+    of IpAddressFamily.IPv4: Domain.AF_INET
+  ndnsClient =
+    DnsClient(ip: ndnsDnsServerIp, port: Port(53), domain: ndnsDnsServerIpDomain)
 
 randomize()
 
-proc initDnsClient(strIp: string, port: Port, raiseExceptions: static[bool]): DnsClient =
+proc initDnsClient(
+    strIp: string, port: Port, raiseExceptions: static[bool]
+): DnsClient =
   when raiseExceptions:
     let ip = parseIpAddress(strIp)
 
@@ -146,15 +156,17 @@ template checkResponse() =
   result = parseBinMessage(rBinMsg)
 
   if result.header.id != msg.header.id:
-    raise newException(ResponseIdNotEqualError,
-                       "The query ID does not match the response ID")
+    raise newException(
+      ResponseIdNotEqualError, "The query ID does not match the response ID"
+    )
 
   if result.header.flags.qr != QR.Response:
     raise newException(IsNotAnResponseError, "Not a response (!= QR.Response)")
 
   if result.header.flags.opcode != msg.header.flags.opcode:
-    raise newException(OpCodeNotEqualError,
-                       "The OpCode is different between the query and the response")
+    raise newException(
+      OpCodeNotEqualError, "The OpCode is different between the query and the response"
+    )
 
 proc toBinTcpMsg(msg: Message): string =
   try:
@@ -170,9 +182,9 @@ proc toBinMsg(msg: Message): string =
   except:
     result = ""
 
-proc dnsTcpQuery*(client: DnsClient,
-                  msg: Message,
-                  timeout: Duration = 5000.milliseconds): Future[Message] {.async.} =
+proc dnsTcpQuery*(
+    client: DnsClient, msg: Message, timeout: Duration = 5000.milliseconds
+): Future[Message] {.async.} =
   ## Returns a `Message` of the DNS query response performed using the TCP
   ## protocol
   ##
@@ -192,8 +204,10 @@ proc dnsTcpQuery*(client: DnsClient,
     address = initTAddress(client.ip, client.port)
     transpFut = connect(address)
     transp =
-      if await transpFut.withTimeout(timeout): transpFut.read
-      else: raise newException(IOError, "timeout")
+      if await transpFut.withTimeout(timeout):
+        transpFut.read
+      else:
+        raise newException(IOError, "timeout")
 
   try:
     if not await transp.write($qBinMsg).withTimeout(timeout):
@@ -202,21 +216,24 @@ proc dnsTcpQuery*(client: DnsClient,
     let
       lenRecvFut = transp.read(2)
       lenRecv =
-        if await lenRecvFut.withTimeout(timeout): lenRecvFut.read
-        else: raise newException(IOError, "timeout")
+        if await lenRecvFut.withTimeout(timeout):
+          lenRecvFut.read
+        else:
+          raise newException(IOError, "timeout")
 
     var
-      remaiderRecv = int(fromBytes(uint16,
-                                   [uint8(ord(lenRecv[0])),
-                                   uint8(ord(lenRecv[1]))],
-                                   bigEndian))
+      remaiderRecv = int(
+        fromBytes(uint16, [uint8(ord(lenRecv[0])), uint8(ord(lenRecv[1]))], bigEndian)
+      )
       rBinMsg = newStringOfCap(remaiderRecv)
 
     let
       recvFut = transp.read
       recv =
-        if await recvFut.withTimeout(timeout): recvFut.read
-        else: raise newException(IOError, "timeout")
+        if await recvFut.withTimeout(timeout):
+          recvFut.read
+        else:
+          raise newException(IOError, "timeout")
       recvMsg = bytesToString(recv)
 
     rBinMsg.add recvMsg
@@ -227,10 +244,12 @@ proc dnsTcpQuery*(client: DnsClient,
   finally:
     await transp.closeWait
 
-proc dnsQuery*(client: DnsClient,
-               msg: Message,
-               timeout: Duration = 500.milliseconds,
-               retransmit = false): Future[Message] {.async.} =
+proc dnsQuery*(
+    client: DnsClient,
+    msg: Message,
+    timeout: Duration = 500.milliseconds,
+    retransmit = false,
+): Future[Message] {.async.} =
   ## Returns a `Message` of the DNS query response performed using the UDP
   ## protocol.
   ##
@@ -251,9 +270,9 @@ proc dnsQuery*(client: DnsClient,
 
   let receivedDataFuture = newFuture[void]()
 
-  proc datagramDataReceived(transp: DatagramTransport,
-                            raddr: TransportAddress): Future[void] {.
-                            async: (raises: []).} =
+  proc datagramDataReceived(
+      transp: DatagramTransport, raddr: TransportAddress
+  ): Future[void] {.async: (raises: []).} =
     receivedDataFuture.complete()
 
   let sock = newDatagramTransport(datagramDataReceived)
@@ -334,9 +353,9 @@ proc randId*(): uint16 {.inline.} =
 
   rand(1 .. 65535).uint16
 
-proc resolveIpv4*(client: DnsClient,
-                  domain: string,
-                  timeout: Duration = 500.milliseconds): Future[seq[string]] {.async.} =
+proc resolveIpv4*(
+    client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
+): Future[seq[string]] {.async.} =
   ## Returns all IPv4 addresses, in a `seq[string]`, that have been resolved
   ## from `domain`. The `seq[string]` can be empty.
   ##
@@ -350,22 +369,24 @@ proc resolveIpv4*(client: DnsClient,
   ##   to receive the response for an unlimited time.
 
   let
-    msg = initMessage(initHeader(id = randId(), rd = true),
-                      @[initQuestion(domain, QType.A, QClass.IN)])
+    msg = initMessage(
+      initHeader(id = randId(), rd = true), @[initQuestion(domain, QType.A, QClass.IN)]
+    )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
   if rmsg.header.flags.rcode == RCode.NoError:
     for rr in rmsg.answers:
-      if rr.`type` != Type.A or rr.class != Class.IN: continue
+      if rr.`type` != Type.A or rr.class != Class.IN:
+        continue
 
-      let ip = IpAddress(family: IpAddressFamily.IPv4,
-                         address_v4: RDataA(rr.rdata).address)
+      let ip =
+        IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
 
       add(result, $ip)
 
-proc resolveIpv6*(client: DnsClient,
-                  domain: string,
-                  timeout: Duration = 500.milliseconds): Future[seq[string]] {.async.} =
+proc resolveIpv6*(
+    client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
+): Future[seq[string]] {.async.} =
   ## Returns all IPv6 addresses, in a `seq[string]`, that have been resolved
   ## from `domain`. The `seq[string]` can be empty.
   ##
@@ -379,22 +400,25 @@ proc resolveIpv6*(client: DnsClient,
   ##   to receive the response for an unlimited time.
 
   let
-    msg = initMessage(initHeader(id = randId(), rd = true),
-                      @[initQuestion(domain, QType.AAAA, QClass.IN)])
+    msg = initMessage(
+      initHeader(id = randId(), rd = true),
+      @[initQuestion(domain, QType.AAAA, QClass.IN)],
+    )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
   if rmsg.header.flags.rcode == RCode.NoError:
     for rr in rmsg.answers:
-      if rr.`type` != Type.AAAA or rr.class != Class.IN: continue
+      if rr.`type` != Type.AAAA or rr.class != Class.IN:
+        continue
 
-      let ip = IpAddress(family: IpAddressFamily.IPv6,
-                         address_v6: RDataAAAA(rr.rdata).address)
+      let ip =
+        IpAddress(family: IpAddressFamily.IPv6, address_v6: RDataAAAA(rr.rdata).address)
 
       add(result, $ip)
 
-proc resolveRDns*(client: DnsClient,
-                  strIp: string,
-                  timeout: Duration = 500.milliseconds): Future[seq[string]] {.async.} =
+proc resolveRDns*(
+    client: DnsClient, strIp: string, timeout: Duration = 500.milliseconds
+): Future[seq[string]] {.async.} =
   ## Returns all domain names, in a `seq[string]`, which is obtained by the
   ## "reverse" query of `ip`. The `seq[string]` can be empty.
   ##
@@ -409,20 +433,23 @@ proc resolveRDns*(client: DnsClient,
   ##   to receive the response for an unlimited time.
 
   let
-    msg = initMessage(initHeader(id = randId(), rd = true),
-                      @[initQuestion(prepareRDns(strIp), QType.PTR, QClass.IN)])
+    msg = initMessage(
+      initHeader(id = randId(), rd = true),
+      @[initQuestion(prepareRDns(strIp), QType.PTR, QClass.IN)],
+    )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
   if rmsg.header.flags.rcode == RCode.NoError:
     for rr in rmsg.answers:
       if rr.name != msg.questions[0].qname or rr.`type` != Type.PTR or
-        rr.class != Class.IN: continue
+          rr.class != Class.IN:
+        continue
 
       add(result, RDataPTR(rr.rdata).ptrdname)
 
-proc resolveDnsBL*(client: DnsClient,
-                   strIp, dnsbl: string,
-                   timeout: Duration = 500.milliseconds): Future[seq[string]] {.async.} =
+proc resolveDnsBL*(
+    client: DnsClient, strIp, dnsbl: string, timeout: Duration = 500.milliseconds
+): Future[seq[string]] {.async.} =
   ## Returns IPv4 addresses. Usually the loopback address (127.0.0.0/24), in
   ## which the last octet of IPv4 represents something on the black list.
   ##
