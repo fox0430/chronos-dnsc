@@ -14,24 +14,24 @@ suite "dnsQuery":
     let client = initDnsClient()
     let r = await client.dnsQuery(msg)
 
-    check r.header.flags == Flags(
-      qr: Response,
-      opcode: Query,
-      aa: false,
-      tc: false,
-      rd: true,
-      ra: true,
-      z: 0,
-      rcode: NoError)
+    check r.header.flags ==
+      Flags(
+        qr: Response,
+        opcode: Query,
+        aa: false,
+        tc: false,
+        rd: true,
+        ra: true,
+        z: 0,
+        rcode: NoError,
+      )
 
     check r.header.qdcount == 1
     check r.header.ancount == 2
     check r.header.nscount == 0
     check r.header.arcount == 0
 
-    check r.questions == @[
-      Question(qname: "nim-lang.org.", qtype: A, qclass: IN)
-    ]
+    check r.questions == @[Question(qname: "nim-lang.org.", qtype: A, qclass: IN)]
 
     check r.answers[0].name == "nim-lang.org."
     check r.answers[0].`type` == Type.A
@@ -48,24 +48,24 @@ suite "dnsTcpQuery":
     let client = initDnsClient()
     let r = await client.dnsTcpQuery(msg)
 
-    check r.header.flags == Flags(
-      qr: Response,
-      opcode: Query,
-      aa: false,
-      tc: false,
-      rd: true,
-      ra: true,
-      z: 0,
-      rcode: NoError)
+    check r.header.flags ==
+      Flags(
+        qr: Response,
+        opcode: Query,
+        aa: false,
+        tc: false,
+        rd: true,
+        ra: true,
+        z: 0,
+        rcode: NoError,
+      )
 
     check r.header.qdcount == 1
     check r.header.ancount == 2
     check r.header.nscount == 0
     check r.header.arcount == 0
 
-    check r.questions == @[
-      Question(qname: "nim-lang.org.", qtype: A, qclass: IN)
-    ]
+    check r.questions == @[Question(qname: "nim-lang.org.", qtype: A, qclass: IN)]
 
     check r.answers[0].name == "nim-lang.org."
     check r.answers[0].`type` == Type.A
@@ -75,11 +75,8 @@ suite "dnsTcpQuery":
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
     try:
-      result = execCmdEx("dig +short nim-lang.org")
-        .output
-        .splitLines
-        .filterIt(it.len > 0)
-        .sorted
+      result = execCmdEx("dig +short nim-lang.org").output.splitLines
+        .filterIt(it.len > 0).sorted
     except:
       result = @[]
 

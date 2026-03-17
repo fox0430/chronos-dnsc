@@ -20,18 +20,19 @@
 import std/[os, parseutils, times]
 
 type
-  FileChangeDetection = object
-    ## Object for `ndnsPathResConf` file information.
+  FileChangeDetection = object ## Object for `ndnsPathResConf` file information.
     fileId: FileId ## Serial ID
     size: BiggestInt ## Size
     lastWriteTime: Time ## Last write time
     creationTime: Time ## Creation time
 
-  ResolvConfGlobal = object
-    ## Object for global resolver information.
-    nameserver: string ## The first nameserver caught in the last parse of `ndnsPathResConf`
-    fileResolvConf: FileChangeDetection ## `ndnsPathResConf` file information during last parse.
-    initialized: bool ## Determines whether the `ndnsPathResConf` file has already been parsed
+  ResolvConfGlobal = object ## Object for global resolver information.
+    nameserver: string
+      ## The first nameserver caught in the last parse of `ndnsPathResConf`
+    fileResolvConf: FileChangeDetection
+      ## `ndnsPathResConf` file information during last parse.
+    initialized: bool
+      ## Determines whether the `ndnsPathResConf` file has already been parsed
 
 const ndnsPathResConf* {.strdefine.} = "/etc/resolv.conf"
   ## Resolver configuration file. You can change by compiling with
@@ -44,17 +45,18 @@ proc fileResolvIsUnchanged(): bool =
   ## Returns `true` if the `ndnsPathResConf` file has not changed since the last parse.
   let fileInfo = getFileInfo(ndnsPathResConf)
 
-  result = (fileInfo.id.file == resolvGlobal.fileResolvConf.fileId) and
-           (fileInfo.size == resolvGlobal.fileResolvConf.size) and
-           (fileInfo.creationTime == resolvGlobal.fileResolvConf.creationTime) and
-           (fileInfo.lastWriteTime == resolvGlobal.fileResolvConf.lastWriteTime)
+  result =
+    (fileInfo.id.file == resolvGlobal.fileResolvConf.fileId) and
+    (fileInfo.size == resolvGlobal.fileResolvConf.size) and
+    (fileInfo.creationTime == resolvGlobal.fileResolvConf.creationTime) and
+    (fileInfo.lastWriteTime == resolvGlobal.fileResolvConf.lastWriteTime)
 
 proc getSystemDnsServer*(): string =
   ## Returns the first nameserver found in the `ndnsPathResConf` file. Will return `""` if not
   ## found.
   const
-    comments = { ';', '#' }
-    whiteSpaces = { ' ', '\t', '\v', '\r', '\n', '\f' }
+    comments = {';', '#'}
+    whiteSpaces = {' ', '\t', '\v', '\r', '\n', '\f'}
     commentsAndWhiteSpaces = comments + whiteSpaces
 
   if resolvGlobal.initialized and fileResolvIsUnchanged():
@@ -64,8 +66,10 @@ proc getSystemDnsServer*(): string =
       let fileInfo = getFileInfo(ndnsPathResConf)
 
       for line in lines(ndnsPathResConf):
-        if line == "": continue # skipe empty line
-        if line[0] in comments: continue # skip comments
+        if line == "":
+          continue # skipe empty line
+        if line[0] in comments:
+          continue # skip comments
 
         var strConf: string
 
@@ -74,9 +78,12 @@ proc getSystemDnsServer*(): string =
         if count > 0:
           case strConf
           of "nameserver":
-            if parseUntil(line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)) > 0:
+            if parseUntil(
+              line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)
+            ) > 0:
               break
-          else: # for now there is no interest in implementing: domain, search and options
+          else:
+            # for now there is no interest in implementing: domain, search and options
             discard
 
       resolvGlobal.nameserver = result
@@ -126,8 +133,8 @@ when false:
     {.passL: "-lresolv".}
 
   const
-    useOpenBSDResolv = when defined(useDeprecatedResolv) and defined(openbsd): true
-                      else: false
+    useOpenBSDResolv =
+      when defined(useDeprecatedResolv) and defined(openbsd): true else: false
       # The structure of res_state in OpenBSD has several peculiarities, as well
       # as currently adopts the deprecated version with res_init().
       # https://github.com/openbsd/src/blob/e3c5fa921ef394179421471c88eb2be26d8a6692/include/resolv.h
@@ -139,9 +146,11 @@ when false:
     RES_INIT = 1
 
   when useOpenBSDResolv:
-    {.emit: """/*INCLUDESECTION*/
+    {.
+      emit: """/*INCLUDESECTION*/
   #include <netinet/in.h>
-  """.} # See https://github.com/troglobit/inadyn/issues/241
+  """
+    .} # See https://github.com/troglobit/inadyn/issues/241
 
     const MAXDNSLUS = 4
 
@@ -151,6 +160,7 @@ when false:
       ResTimeSpecObj = object
         resSec: Time
         resNSec: clong
+
   else:
     type CulongOrCuint = culong
 
@@ -165,7 +175,6 @@ when false:
 
     #ResSendRhook = proc (ns: ptr Sockaddr_in, query: ptr uint8, querylen: cint,
     #                     ans: ptr uint8, anssiz: cint, resplen: ptr cint): ResSendhookact {.cdecl.}
-
     ResSendQhook = pointer
     ResSendRhook = pointer
 
@@ -198,13 +207,13 @@ when false:
       dnsrch: array[MAXDNSRCH + 1, cstring]
       defdname: array[256, cchar]
       pfcode: CulongOrCuint
-      ndots {.bitsize:4.}: cuint
-      nsort {.bitsize:4.}: cuint
+      ndots {.bitsize: 4.}: cuint
+      nsort {.bitsize: 4.}: cuint
       when useOpenBSDResolv:
         unused: array[3, cchar]
       else:
-        ipv6_unavail {.bitsize:1.}: cuint
-        unused {.bitsize:23.}: cuint
+        ipv6_unavail {.bitsize: 1.}: cuint
+        unused {.bitsize: 23.}: cuint
       sortList: array[MAXRESOLVSORT, SortListObj]
       when useOpenBSDResolv:
         lookups: array[MAXDNSLUS, cchar]
@@ -226,7 +235,8 @@ when false:
     proc resNClose(rstatep: ptr SResState) {.importc: "res_nclose".}
   else:
     when useOpenBSDResolv:
-      var res {.importc: "_res".}: SResState # currently it is a C macro for `struct __res_state __res_state(void)`
+      var res {.importc: "_res".}: SResState
+        # currently it is a C macro for `struct __res_state __res_state(void)`
     else:
       proc resState(): ptr SResState {.importc: "__res_state".}
 
@@ -240,14 +250,18 @@ when false:
       rs: ResState
       ip: IpAddress
       port: Port
-      rInit = when defined(useDeprecatedResolv): resInit()
-              else: resNInit(cast[ptr SResState](addr rs))
+      rInit =
+        when defined(useDeprecatedResolv):
+          resInit()
+        else:
+          resNInit(cast[ptr SResState](addr rs))
 
     if rInit == 0:
       when useOpenBSDResolv:
         rs = cast[ResState](res)
       elif defined(useDeprecatedResolv):
-        rs = cast[ResState](resState()[]) # If nim compiled with `--threads:on`, on NetBSD it will result in SIGABRT
+        rs = cast[ResState](resState()[])
+          # If nim compiled with `--threads:on`, on NetBSD it will result in SIGABRT
 
       if (rs.options and RES_INIT) == RES_INIT:
         fromSockAddr(rs.nsaddrList[0], sizeof(Sockaddr_in).SockLen, ip, port)
