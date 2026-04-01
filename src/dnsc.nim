@@ -269,10 +269,12 @@ proc dnsQuery*(
     raise newException(ValueError, "toBinMsg failed")
 
   let receivedDataFuture = newFuture[void]()
+  var remoteAddr: TransportAddress
 
   proc datagramDataReceived(
       transp: DatagramTransport, raddr: TransportAddress
   ): Future[void] {.async: (raises: []).} =
+    remoteAddr = raddr
     receivedDataFuture.complete()
 
   let sock = newDatagramTransport(datagramDataReceived)
@@ -285,6 +287,18 @@ proc dnsQuery*(
 
     if not (await receivedDataFuture.withTimeout(timeout)):
       raise newException(IOError, "timeout")
+
+    if remoteAddr.toIpAddress() != address.toIpAddress():
+      raise newException(
+        ResponseIpNotEqualError,
+        "The IP that sent the response is different from the IP that received the query",
+      )
+
+    if remoteAddr.port != address.port:
+      raise newException(
+        ResponsePortNotEqualError,
+        "The Port that sent the response is different from the Port that received the query",
+      )
 
     let
       rawResponse = sock.getMessage
