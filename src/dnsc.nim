@@ -227,18 +227,20 @@ proc dnsTcpQuery*(
       )
       rBinMsg = newStringOfCap(remaiderRecv)
 
-    let
-      recvFut = transp.read
-      recv =
-        if await recvFut.withTimeout(timeout):
-          recvFut.read
-        else:
-          raise newException(IOError, "timeout")
-      recvMsg = bytesToString(recv)
+    while remaiderRecv > 0:
+      let
+        recvFut = transp.read(remaiderRecv)
+        recv =
+          if await recvFut.withTimeout(timeout):
+            recvFut.read
+          else:
+            raise newException(IOError, "timeout")
 
-    rBinMsg.add recvMsg
+      if recv.len == 0:
+        raise newException(UnexpectedDisconnectionError, "Unexpected disconnection")
 
-    remaiderRecv = remaiderRecv - recv.len
+      rBinMsg.add bytesToString(recv)
+      remaiderRecv = remaiderRecv - recv.len
 
     checkResponse()
   finally:
