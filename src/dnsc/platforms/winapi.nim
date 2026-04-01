@@ -49,7 +49,9 @@ type
   PFIXED_INFO = ptr FIXED_INFO
 
 # https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getnetworkparams
-proc getNetworkParams(pFixedInfo: PFIXED_INFO, pOutBufLen: var uint32): int32 {.importc: "GetNetworkParams", stdcall, dynlib: "Iphlpapi.dll".}
+proc getNetworkParams(
+  pFixedInfo: PFIXED_INFO, pOutBufLen: var uint32
+): int32 {.importc: "GetNetworkParams", stdcall, dynlib: "Iphlpapi.dll".}
 
 proc getSystemDnsServer*(): string =
   ## Returns the IPv4 used by the system for DNS resolution. Otherwise it
@@ -59,7 +61,9 @@ proc getSystemDnsServer*(): string =
     buf = cast[PFIXED_INFO](alloc0(int(bufLen)))
 
   if isNil(buf):
-    raise newException(CatchableError, "Error allocating memory needed to call GetNetworkParams")
+    raise newException(
+      CatchableError, "Error allocating memory needed to call GetNetworkParams"
+    )
 
   var success = getNetworkParams(buf, bufLen)
 
@@ -67,11 +71,13 @@ proc getSystemDnsServer*(): string =
     buf = cast[PFIXED_INFO](realloc0(buf, sizeof(FIXED_INFO), int(bufLen)))
 
     if isNil(buf):
-      raise newException(CatchableError, "Error allocating memory needed to call GetNetworkParams")
+      raise newException(
+        CatchableError, "Error allocating memory needed to call GetNetworkParams"
+      )
 
     success = getNetworkParams(buf, bufLen)
 
-  if success  == ERROR_SUCCESS:
+  if success == ERROR_SUCCESS:
     result = $cast[cstring](addr buf.dnsServerList.ipAddress.`string`)
 
   dealloc(buf)
