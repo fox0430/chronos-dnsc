@@ -4,7 +4,7 @@
 # Copyright (c) 2020 rockcavera
 # https://github.com/rockcavera/nim-ndns/blob/main/LICENSE
 
-import std/[nativesockets, random]
+import std/[nativesockets, sysrand]
 
 import
   pkg/[
@@ -65,8 +65,6 @@ const
     of IpAddressFamily.IPv4: Domain.AF_INET
   ndnsClient =
     DnsClient(ip: ndnsDnsServerIp, port: Port(53), domain: ndnsDnsServerIpDomain)
-
-randomize()
 
 proc initDnsClient(
     strIp: string, port: Port, raiseExceptions: static[bool]
@@ -350,10 +348,14 @@ proc prepareDnsBL*(strIp, dnsbl: string): string =
 
   domainNameRDns(strIp, dnsbl, dnsbl)
 
-proc randId*(): uint16 {.inline.} =
+proc randId*(): uint16 =
   ## Returns a `uint16`, randomly generated, to be used as an id.
 
-  rand(1 .. 65535).uint16
+  var buf: array[2, byte]
+  doAssert urandom(buf)
+  result = (uint16(buf[0]) shl 8) or uint16(buf[1])
+  if result == 0:
+    result = 1
 
 proc resolveIpv4*(
     client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
