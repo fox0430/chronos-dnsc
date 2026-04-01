@@ -75,8 +75,8 @@ suite "dnsTcpQuery":
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
     try:
-      result = execCmdEx("dig +short nim-lang.org").output.splitLines
-        .filterIt(it.len > 0).sorted
+      result =
+        execCmdEx("dig +short " & domain).output.splitLines.filterIt(it.len > 0).sorted
     except:
       result = @[]
 
