@@ -149,7 +149,7 @@ proc parseBinMessage(msg: BinMsg): Message =
   try:
     {.cast(gcsafe).}:
       result = parseMessage(msg)
-  except:
+  except Exception:
     result = Message()
 
 template checkResponse() =
@@ -172,14 +172,14 @@ proc toBinTcpMsg(msg: Message): string =
   try:
     {.cast(gcsafe).}:
       result = toBinMsg(msg, true)
-  except:
+  except Exception:
     result = ""
 
 proc toBinMsg(msg: Message): string =
   try:
     {.cast(gcsafe).}:
       result = toBinMsg(msg, false)
-  except:
+  except Exception:
     result = ""
 
 proc dnsTcpQuery*(
