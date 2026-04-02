@@ -294,6 +294,9 @@ proc dnsQuery*(
       rBinMsg = bytesToString(rawResponse)
 
     checkResponse()
+
+    if retransmit and result.header.flags.tc:
+      result = await dnsTcpQuery(client, msg, timeout)
   finally:
     await sock.closeWait
 
