@@ -38,7 +38,7 @@ const ndnsPathResConf* {.strdefine.} = "/etc/resolv.conf"
   ## Resolver configuration file. You can change by compiling with
   ## `-d:ndnsPathResConf=/etc/myresolv.conf`.
 
-var resolvGlobal: ResolvConfGlobal
+var resolvGlobal {.threadvar.}: ResolvConfGlobal
   ## Keeps information from the `ndnsPathResConf` file and if it has already been parsed.
 
 proc fileResolvIsUnchanged(): bool =
