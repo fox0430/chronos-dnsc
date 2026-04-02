@@ -210,6 +210,11 @@ proc dnsTcpQuery*(
         else:
           raise newException(IOError, "timeout")
 
+    if lenRecv.len < 2:
+      raise newException(
+        UnexpectedDisconnectionError, "Connection closed while reading message length"
+      )
+
     var
       remaiderRecv = int(
         fromBytes(uint16, [uint8(ord(lenRecv[0])), uint8(ord(lenRecv[1]))], bigEndian)
