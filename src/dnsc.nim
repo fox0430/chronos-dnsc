@@ -503,4 +503,4 @@ proc resolveDnsBL*(
   ##   negative (less than 0), it will try to connect for an unlimited time or
   ##   to receive the response for an unlimited time.
 
-  result = await resolveIpv4(client, prepareDnsBL(strIp, dnsbl))
+  result = await resolveIpv4(client, prepareDnsBL(strIp, dnsbl), timeout)
