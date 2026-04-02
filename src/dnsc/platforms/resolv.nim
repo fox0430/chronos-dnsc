@@ -57,34 +57,38 @@ proc getSystemDnsServer*(): string =
     whiteSpaces = {' ', '\t', '\v', '\r', '\n', '\f'}
     commentsAndWhiteSpaces = comments + whiteSpaces
 
-  if not fileExists(dnscPathResConf):
+  var fileInfo: FileInfo
+  try:
+    fileInfo = getFileInfo(dnscPathResConf)
+  except OSError:
     return
-
-  let fileInfo = getFileInfo(dnscPathResConf)
 
   if resolvGlobal.initialized and fileInfo.isUnchanged():
     result = resolvGlobal.nameserver
   else:
-    for line in lines(dnscPathResConf):
-      if line == "":
-        continue # skip empty line
-      if line[0] in comments:
-        continue # skip comments
+    try:
+      for line in lines(dnscPathResConf):
+        if line == "":
+          continue # skip empty line
+        if line[0] in comments:
+          continue # skip comments
 
-      var strConf: string
+        var strConf: string
 
-      let count = parseUntil(line, strConf, whiteSpaces)
+        let count = parseUntil(line, strConf, whiteSpaces)
 
-      if count > 0:
-        case strConf
-        of "nameserver":
-          if parseUntil(
-            line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)
-          ) > 0:
-            break
-        else:
-          # for now there is no interest in implementing: domain, search and options
-          discard
+        if count > 0:
+          case strConf
+          of "nameserver":
+            if parseUntil(
+              line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)
+            ) > 0:
+              break
+          else:
+            # for now there is no interest in implementing: domain, search and options
+            discard
+    except IOError:
+      return
 
     resolvGlobal.nameserver = result
     resolvGlobal.fileResolvConf.fileId = fileInfo.id.file
