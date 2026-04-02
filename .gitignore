@@ -4,6 +4,7 @@ htmldocs/
 
 src/*
 !src/*.*
+!src/dnsc/
 
 tests/*
 !tests/*.*
