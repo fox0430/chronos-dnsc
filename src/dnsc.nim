@@ -22,7 +22,7 @@ when defined(nimdoc):
   import ./dnsc/platforms/winapi
   import ./dnsc/platforms/resolv except getSystemDnsServer
 else:
-  when defined(linux) or defined(bsd) or defined(ndnsUseResolver):
+  when defined(linux) or defined(bsd) or defined(dnscUseResolver):
     import ./dnsc/platforms/resolv
   elif defined(windows):
     import ./dnsc/platforms/winapi
@@ -56,15 +56,15 @@ type
 const
   ipv4Arpa = "in-addr.arpa" ## Special domain reserved for reverse IP lookup for IPv4
   ipv6Arpa = "ip6.arpa" ## Special domain reserved for IP reverse query for IPv6
-  ndnsDnsServerIp* {.strdefine.} = "8.8.8.8"
+  dnscDnsServerIp* {.strdefine.} = "8.8.8.8"
     ## Default dns server ip for queries. You can change by compiling with
-    ## `-d:ndnsDnsServerIp=1.1.1.1`.
-  ndnsDnsServerIpDomain =
-    case parseIpAddress(ndnsDnsServerIp).family
+    ## `-d:dnscDnsServerIp=1.1.1.1`.
+  dnscDnsServerIpDomain =
+    case parseIpAddress(dnscDnsServerIp).family
     of IpAddressFamily.IPv6: Domain.AF_INET6
     of IpAddressFamily.IPv4: Domain.AF_INET
-  ndnsClient =
-    DnsClient(ip: ndnsDnsServerIp, port: Port(53), domain: ndnsDnsServerIpDomain)
+  dnscClient =
+    DnsClient(ip: dnscDnsServerIp, port: Port(53), domain: dnscDnsServerIpDomain)
 
 proc initDnsClient(
     strIp: string, port: Port, raiseExceptions: static[bool]
@@ -93,9 +93,9 @@ proc initDnsClient(
       of IpAddressFamily.IPv4:
         result.domain = AF_INET
     except ValueError:
-      result = ndnsClient
+      result = dnscClient
 
-proc initDnsClient*(strIp: string = ndnsDnsServerIp, port: Port = Port(53)): DnsClient =
+proc initDnsClient*(strIp: string = dnscDnsServerIp, port: Port = Port(53)): DnsClient =
   ## Returns a created `DnsClient` object.
   ##
   ## **Parameters**
@@ -109,7 +109,7 @@ proc initDnsClient*(strIp: string = ndnsDnsServerIp, port: Port = Port(53)): Dns
 proc initSystemDnsClient*(): DnsClient =
   ## Returns a `DnsClient` object, in which the dns server IP is the first one
   ## used by the system. If it is not possible to determine a dns server IP by
-  ## the system, it will be initialized with `ndnsDnsServerIp`.
+  ## the system, it will be initialized with `dnscDnsServerIp`.
   ##
   ## Currently implemented for:
   ## - `Windows<ndns/platforms/winapi.html>`_
@@ -118,7 +118,7 @@ proc initSystemDnsClient*(): DnsClient =
   ##
   ## Notes:
   ## - If your platform is not listed above and uses a `resolver configuration
-  ##   file<ndns/platforms/resolv.html>`_, compile with `-d:ndnsUseResolver`.
+  ##   file<ndns/platforms/resolv.html>`_, compile with `-d:dnscUseResolver`.
   ## - It just creates a `DnsClient` object with the IP used by the system. Does
   ##   not use the system's native DNS resolution implementation unless the
   ##   system provides a proxy.
@@ -129,11 +129,11 @@ proc initSystemDnsClient*(): DnsClient =
     let ipServDns = getSystemDnsServer()
 
     if ipServDns == "":
-      result = ndnsClient
+      result = dnscClient
     else:
       result = initDnsClient(ipServDns, Port(53), false)
   else:
-    result = ndnsClient
+    result = dnscClient
 
 proc getIp*(client: DnsClient): string =
   ## Returns the IP defined in the `client`.
@@ -144,11 +144,9 @@ proc getPort*(client: DnsClient): Port =
   client.port
 
 proc parseBinMessage(msg: BinMsg): Message =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = parseMessage(msg)
-  except Exception:
-    result = Message()
 
 template checkResponse() =
   result = parseBinMessage(rBinMsg)
@@ -167,18 +165,14 @@ template checkResponse() =
     )
 
 proc toBinTcpMsg(msg: Message): string =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = toBinMsg(msg, true)
-  except Exception:
-    result = ""
 
 proc toBinMsg(msg: Message): string =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = toBinMsg(msg, false)
-  except Exception:
-    result = ""
 
 proc dnsTcpQuery*(
     client: DnsClient, msg: Message, timeout: Duration = 5000.milliseconds
@@ -194,11 +188,8 @@ proc dnsTcpQuery*(
   ##   DNS server. When it is negative (less than 0), it will try to connect for
   ##   an unlimited time.
 
-  let qBinMsg = toBinTcpMsg(msg)
-  if qBinMsg.len == 0:
-    raise newException(ValueError, "toBinTcpMsg failed")
-
   let
+    qBinMsg = toBinTcpMsg(msg)
     address = initTAddress(client.ip, client.port)
     transpFut = connect(address)
     transp =
@@ -265,8 +256,6 @@ proc dnsQuery*(
   ##   (`header.flags.tc == true`).
 
   let qBinMsg = toBinMsg(msg)
-  if qBinMsg.len == 0:
-    raise newException(ValueError, "toBinMsg failed")
 
   let receivedDataFuture = newFuture[void]()
   var remoteAddr: TransportAddress
@@ -305,6 +294,9 @@ proc dnsQuery*(
       rBinMsg = bytesToString(rawResponse)
 
     checkResponse()
+
+    if retransmit and result.header.flags.tc:
+      result = await dnsTcpQuery(client, msg, timeout)
   finally:
     await sock.closeWait
 
