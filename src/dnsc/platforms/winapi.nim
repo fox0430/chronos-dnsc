@@ -94,6 +94,18 @@ proc ipToString(sa: ptr SockAddr): string =
         curLen = 0
 
     const hexDigits = "0123456789abcdef"
+
+    proc addHexGroup(s: var string, v: uint16) =
+      if v == 0:
+        s.add('0')
+      else:
+        var started = false
+        for shift in countdown(12, 0, 4):
+          let nibble = (v shr shift) and 0xF
+          if nibble != 0 or started:
+            s.add(hexDigits[nibble])
+            started = true
+
     if bestLen >= 2:
       for i in 0 .. 7:
         if i == bestStart:
@@ -103,31 +115,12 @@ proc ipToString(sa: ptr SockAddr): string =
         else:
           if i > 0 and i != bestStart + bestLen:
             result.add(':')
-          # Emit hex without leading zeros
-          let v = parts[i]
-          if v == 0:
-            result.add('0')
-          else:
-            var started = false
-            for shift in countdown(12, 0, 4):
-              let nibble = (v shr shift) and 0xF
-              if nibble != 0 or started:
-                result.add(hexDigits[nibble])
-                started = true
+          result.addHexGroup(parts[i])
     else:
       for i in 0 .. 7:
         if i > 0:
           result.add(':')
-        let v = parts[i]
-        if v == 0:
-          result.add('0')
-        else:
-          var started = false
-          for shift in countdown(12, 0, 4):
-            let nibble = (v shr shift) and 0xF
-            if nibble != 0 or started:
-              result.add(hexDigits[nibble])
-              started = true
+        result.addHexGroup(parts[i])
 
 proc getSystemDnsServer*(): string =
   ## Returns the first DNS server IP (IPv4 or IPv6) used by the system for DNS
