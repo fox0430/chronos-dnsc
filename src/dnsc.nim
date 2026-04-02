@@ -53,6 +53,10 @@ type
   OpCodeNotEqualError* = object of CatchableError
     ## Raised if the OpCode is different between the query and the response.
 
+  DnsResponseError* = object of CatchableError
+    ## Raised if the DNS response contains an error (rcode != NoError).
+    rcode*: RCode
+
 const
   ipv4Arpa = "in-addr.arpa" ## Special domain reserved for reverse IP lookup for IPv4
   ipv6Arpa = "ip6.arpa" ## Special domain reserved for IP reverse query for IPv6
@@ -368,15 +372,21 @@ proc resolveIpv4*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode == RCode.NoError:
-    for rr in rmsg.answers:
-      if rr.`type` != Type.A or rr.class != Class.IN:
-        continue
+  if rmsg.header.flags.rcode != RCode.NoError:
+    let err = newException(
+      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
+    )
+    err.rcode = rmsg.header.flags.rcode
+    raise err
 
-      let ip =
-        IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
+  for rr in rmsg.answers:
+    if rr.`type` != Type.A or rr.class != Class.IN:
+      continue
 
-      add(result, $ip)
+    let ip =
+      IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
+
+    add(result, $ip)
 
 proc resolveIpv6*(
     client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
@@ -400,15 +410,21 @@ proc resolveIpv6*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode == RCode.NoError:
-    for rr in rmsg.answers:
-      if rr.`type` != Type.AAAA or rr.class != Class.IN:
-        continue
+  if rmsg.header.flags.rcode != RCode.NoError:
+    let err = newException(
+      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
+    )
+    err.rcode = rmsg.header.flags.rcode
+    raise err
 
-      let ip =
-        IpAddress(family: IpAddressFamily.IPv6, address_v6: RDataAAAA(rr.rdata).address)
+  for rr in rmsg.answers:
+    if rr.`type` != Type.AAAA or rr.class != Class.IN:
+      continue
 
-      add(result, $ip)
+    let ip =
+      IpAddress(family: IpAddressFamily.IPv6, address_v6: RDataAAAA(rr.rdata).address)
+
+    add(result, $ip)
 
 proc resolveRDns*(
     client: DnsClient, strIp: string, timeout: Duration = 500.milliseconds
@@ -433,13 +449,18 @@ proc resolveRDns*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode == RCode.NoError:
-    for rr in rmsg.answers:
-      if rr.name != msg.questions[0].qname or rr.`type` != Type.PTR or
-          rr.class != Class.IN:
-        continue
+  if rmsg.header.flags.rcode != RCode.NoError:
+    let err = newException(
+      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
+    )
+    err.rcode = rmsg.header.flags.rcode
+    raise err
 
-      add(result, RDataPTR(rr.rdata).ptrdname)
+  for rr in rmsg.answers:
+    if rr.name != msg.questions[0].qname or rr.`type` != Type.PTR or rr.class != Class.IN:
+      continue
+
+    add(result, RDataPTR(rr.rdata).ptrdname)
 
 proc resolveDnsBL*(
     client: DnsClient, strIp, dnsbl: string, timeout: Duration = 500.milliseconds
