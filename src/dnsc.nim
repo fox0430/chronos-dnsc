@@ -205,10 +205,17 @@ proc dnsTcpQuery*(
         UnexpectedDisconnectionError, "Connection closed while reading message length"
       )
 
-    var
-      remainderRecv = int(
-        fromBytes(uint16, [uint8(ord(lenRecv[0])), uint8(ord(lenRecv[1]))], bigEndian)
+    let messageLen = int(
+      fromBytes(uint16, [uint8(ord(lenRecv[0])), uint8(ord(lenRecv[1]))], bigEndian)
+    )
+
+    if messageLen == 0:
+      raise newException(
+        UnexpectedDisconnectionError, "Received empty DNS message (length = 0)"
       )
+
+    var
+      remainderRecv = messageLen
       rBinMsg = newStringOfCap(remainderRecv)
 
     while remainderRecv > 0:
