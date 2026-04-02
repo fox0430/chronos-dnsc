@@ -130,6 +130,8 @@ proc getPort*(client: DnsClient): Port =
 
 proc parseBinMessage(msg: BinMsg): Message =
   {.cast(gcsafe).}:
+    # dnsprotocol procs lack gcsafe and raises annotations.
+    # Cast wrappers are used to integrate them with chronos async procs.
     {.cast(raises: [CatchableError]).}:
       result = parseMessage(msg)
 
