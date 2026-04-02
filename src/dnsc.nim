@@ -338,7 +338,7 @@ template domainNameRDns(strIp, domainV4, domainV6: string) =
 
     result.add(domainV4)
   of IpAddressFamily.IPv6:
-    const hexDigits = "0123456789ABCDEF"
+    const hexDigits = "0123456789abcdef"
     # 63 characters for IPv6 +
     # 1 character for the dot of connection between IPv6 and `domainV6` +
     # `len(domainV6)`
