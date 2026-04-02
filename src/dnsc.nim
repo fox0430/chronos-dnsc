@@ -148,7 +148,7 @@ proc parseBinMessage(msg: BinMsg): Message =
     {.cast(raises: [CatchableError]).}:
       result = parseMessage(msg)
 
-template checkResponse() =
+proc checkResponse(rBinMsg: string, msg: Message): Message =
   result = parseBinMessage(rBinMsg)
 
   if result.header.id != msg.header.id:
@@ -231,7 +231,7 @@ proc dnsTcpQuery*(
       rBinMsg.add bytesToString(recv)
       remaiderRecv = remaiderRecv - recv.len
 
-    checkResponse()
+    result = checkResponse(rBinMsg, msg)
   finally:
     await transp.closeWait
 
@@ -293,7 +293,7 @@ proc dnsQuery*(
       rawResponse = sock.getMessage
       rBinMsg = bytesToString(rawResponse)
 
-    checkResponse()
+    result = checkResponse(rBinMsg, msg)
 
     if retransmit and result.header.flags.tc:
       result = await dnsTcpQuery(client, msg, timeout)
