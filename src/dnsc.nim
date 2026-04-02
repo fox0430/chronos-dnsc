@@ -263,11 +263,16 @@ proc dnsQuery*(
 
   var receivedDataFuture = newFuture[void]("dnsQuery.receive")
   var remoteAddr: TransportAddress
+  var receivedData: seq[byte]
 
   proc datagramDataReceived(
       transp: DatagramTransport, raddr: TransportAddress
   ): Future[void] {.async: (raises: []).} =
     remoteAddr = raddr
+    try:
+      receivedData = transp.getMessage()
+    except TransportError:
+      return
     if not receivedDataFuture.finished:
       receivedDataFuture.complete()
 
@@ -291,9 +296,7 @@ proc dnsQuery*(
 
       if remoteAddr.toIpAddress() == address.toIpAddress() and
           remoteAddr.port == address.port:
-        let
-          rawResponse = sock.getMessage()
-          rBinMsg = bytesToString(rawResponse)
+        let rBinMsg = bytesToString(receivedData)
 
         try:
           result = checkResponse(rBinMsg, msg)
