@@ -240,6 +240,7 @@ proc dnsQuery*(
     msg: Message,
     timeout: Duration = 500.milliseconds,
     retransmit = false,
+    tcpTimeout: Duration = 5000.milliseconds,
 ): Future[Message] {.async.} =
   ## Returns a `Message` of the DNS query response performed using the UDP
   ## protocol.
@@ -254,6 +255,9 @@ proc dnsQuery*(
   ## - `retransmit` when `true`, determine the retransmission of the query to
   ##   TCP protocol when the received response is truncated
   ##   (`header.flags.tc == true`).
+  ## - `tcpTimeout` is the maximum waiting time for TCP fallback when
+  ##   `retransmit` is `true`. Defaults to 5000ms since TCP connections
+  ##   typically need more time than UDP.
 
   let qBinMsg = toBinMsg(msg)
 
@@ -296,7 +300,7 @@ proc dnsQuery*(
     checkResponse()
 
     if retransmit and result.header.flags.tc:
-      result = await dnsTcpQuery(client, msg, timeout)
+      result = await dnsTcpQuery(client, msg, tcpTimeout)
   finally:
     await sock.closeWait
 
