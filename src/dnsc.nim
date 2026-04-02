@@ -379,6 +379,36 @@ proc randId*(): uint16 =
   doAssert urandom(buf)
   result = (uint16(buf[0]) shl 8) or uint16(buf[1])
 
+proc resolveIp(
+    client: DnsClient, domain: string, timeout: Duration, qtype: QType
+): Future[seq[string]] {.async.} =
+  let
+    msg = initMessage(
+      initHeader(id = randId(), rd = true), @[initQuestion(domain, qtype, QClass.IN)]
+    )
+    rmsg = await dnsQuery(client, msg, timeout, true)
+
+  checkRcode(rmsg)
+
+  for rr in rmsg.answers:
+    if rr.class != Class.IN:
+      continue
+
+    case qtype
+    of QType.A:
+      if rr.`type` == Type.A:
+        let ip =
+          IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
+        add(result, $ip)
+    of QType.AAAA:
+      if rr.`type` == Type.AAAA:
+        let ip = IpAddress(
+          family: IpAddressFamily.IPv6, address_v6: RDataAAAA(rr.rdata).address
+        )
+        add(result, $ip)
+    else:
+      discard
+
 proc resolveIpv4*(
     client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
 ): Future[seq[string]] {.async.} =
@@ -394,22 +424,7 @@ proc resolveIpv4*(
   ##   negative (less than 0), it will try to connect for an unlimited time or
   ##   to receive the response for an unlimited time.
 
-  let
-    msg = initMessage(
-      initHeader(id = randId(), rd = true), @[initQuestion(domain, QType.A, QClass.IN)]
-    )
-    rmsg = await dnsQuery(client, msg, timeout, true)
-
-  checkRcode(rmsg)
-
-  for rr in rmsg.answers:
-    if rr.`type` != Type.A or rr.class != Class.IN:
-      continue
-
-    let ip =
-      IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
-
-    add(result, $ip)
+  result = await resolveIp(client, domain, timeout, QType.A)
 
 proc resolveIpv6*(
     client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
@@ -426,23 +441,7 @@ proc resolveIpv6*(
   ##   negative (less than 0), it will try to connect for an unlimited time or
   ##   to receive the response for an unlimited time.
 
-  let
-    msg = initMessage(
-      initHeader(id = randId(), rd = true),
-      @[initQuestion(domain, QType.AAAA, QClass.IN)],
-    )
-    rmsg = await dnsQuery(client, msg, timeout, true)
-
-  checkRcode(rmsg)
-
-  for rr in rmsg.answers:
-    if rr.`type` != Type.AAAA or rr.class != Class.IN:
-      continue
-
-    let ip =
-      IpAddress(family: IpAddressFamily.IPv6, address_v6: RDataAAAA(rr.rdata).address)
-
-    add(result, $ip)
+  result = await resolveIp(client, domain, timeout, QType.AAAA)
 
 proc resolveRDns*(
     client: DnsClient, strIp: string, timeout: Duration = 500.milliseconds
