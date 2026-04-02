@@ -72,6 +72,34 @@ suite "dnsTcpQuery":
     check r.answers[0].class == Class.IN
     check r.answers[0].rdlength == 4
 
+suite "error cases":
+  asyncTest "NXDOMAIN raises DnsResponseError":
+    let client = initDnsClient()
+
+    expect DnsResponseError:
+      discard await client.resolveIpv4("nonexistent-domain-test-12345.invalid")
+
+  asyncTest "UDP timeout":
+    # Use TEST-NET address (192.0.2.1) which is non-routable and will timeout
+    let
+      client = initDnsClient("192.0.2.1", Port(53))
+      header = initHeader(randId(), rd = true)
+      question = initQuestion("example.com", QType.A, QClass.IN)
+      msg = initMessage(header, @[question])
+
+    expect IOError:
+      discard await client.dnsQuery(msg, timeout = 50.milliseconds)
+
+  asyncTest "TCP connection refused":
+    let
+      client = initDnsClient("127.0.0.1", Port(1))
+      header = initHeader(randId(), rd = true)
+      question = initQuestion("example.com", QType.A, QClass.IN)
+      msg = initMessage(header, @[question])
+
+    expect CatchableError:
+      discard await client.dnsTcpQuery(msg, timeout = 50.milliseconds)
+
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
     try:
