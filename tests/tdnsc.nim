@@ -113,7 +113,7 @@ suite "prepareRDns":
 
   test "IPv6 full":
     check prepareRDns("2001:db8::1") ==
-      "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.B.D.0.1.0.0.2.ip6.arpa"
+      "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa"
 
 suite "prepareDnsBL":
   test "IPv4":
