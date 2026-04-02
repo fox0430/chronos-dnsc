@@ -6,21 +6,21 @@
 ##
 ## Implements a parser to capture the first nameserver in the resolver configuration file, which is,
 ## by default, /etc/resolv.conf. You can change this file by passing to compile
-## `-d:ndnsPathResConf=/etc/myresolv.conf`.
+## `-d:dnscPathResConf=/etc/myresolv.conf`.
 ##
-## Checking for changes in the `ndnsPathResConf` file performed at each new `getSystemDnsServer()`
+## Checking for changes in the `dnscPathResConf` file performed at each new `getSystemDnsServer()`
 ## call makes the code 2x faster, if there is no change.
 ##
 ## This implementation should work for systems that adopt resolver. Currently this implementation is
 ## imported into Linux and BSD. If your platform uses a resolver configuration file, compile with
-## `-d:ndnsUseResolver`.
+## `-d:dnscUseResolver`.
 ##
 ## References:
 ## - https://man7.org/linux/man-pages/man5/resolv.conf.5.html
 import std/[os, parseutils, times]
 
 type
-  FileChangeDetection = object ## Object for `ndnsPathResConf` file information.
+  FileChangeDetection = object ## Object for `dnscPathResConf` file information.
     fileId: FileId ## Serial ID
     size: BiggestInt ## Size
     lastWriteTime: Time ## Last write time
@@ -28,22 +28,22 @@ type
 
   ResolvConfGlobal = object ## Object for global resolver information.
     nameserver: string
-      ## The first nameserver caught in the last parse of `ndnsPathResConf`
+      ## The first nameserver caught in the last parse of `dnscPathResConf`
     fileResolvConf: FileChangeDetection
-      ## `ndnsPathResConf` file information during last parse.
+      ## `dnscPathResConf` file information during last parse.
     initialized: bool
-      ## Determines whether the `ndnsPathResConf` file has already been parsed
+      ## Determines whether the `dnscPathResConf` file has already been parsed
 
-const ndnsPathResConf* {.strdefine.} = "/etc/resolv.conf"
+const dnscPathResConf* {.strdefine.} = "/etc/resolv.conf"
   ## Resolver configuration file. You can change by compiling with
-  ## `-d:ndnsPathResConf=/etc/myresolv.conf`.
+  ## `-d:dnscPathResConf=/etc/myresolv.conf`.
 
 var resolvGlobal: ResolvConfGlobal
-  ## Keeps information from the `ndnsPathResConf` file and if it has already been parsed.
+  ## Keeps information from the `dnscPathResConf` file and if it has already been parsed.
 
 proc fileResolvIsUnchanged(): bool =
-  ## Returns `true` if the `ndnsPathResConf` file has not changed since the last parse.
-  let fileInfo = getFileInfo(ndnsPathResConf)
+  ## Returns `true` if the `dnscPathResConf` file has not changed since the last parse.
+  let fileInfo = getFileInfo(dnscPathResConf)
 
   result =
     (fileInfo.id.file == resolvGlobal.fileResolvConf.fileId) and
@@ -52,7 +52,7 @@ proc fileResolvIsUnchanged(): bool =
     (fileInfo.lastWriteTime == resolvGlobal.fileResolvConf.lastWriteTime)
 
 proc getSystemDnsServer*(): string =
-  ## Returns the first nameserver found in the `ndnsPathResConf` file. Will return `""` if not
+  ## Returns the first nameserver found in the `dnscPathResConf` file. Will return `""` if not
   ## found.
   const
     comments = {';', '#'}
@@ -62,10 +62,10 @@ proc getSystemDnsServer*(): string =
   if resolvGlobal.initialized and fileResolvIsUnchanged():
     result = resolvGlobal.nameserver
   else:
-    if fileExists(ndnsPathResConf):
-      let fileInfo = getFileInfo(ndnsPathResConf)
+    if fileExists(dnscPathResConf):
+      let fileInfo = getFileInfo(dnscPathResConf)
 
-      for line in lines(ndnsPathResConf):
+      for line in lines(dnscPathResConf):
         if line == "":
           continue # skipe empty line
         if line[0] in comments:
