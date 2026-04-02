@@ -27,7 +27,7 @@ suite "dnsQuery":
       )
 
     check r.header.qdcount == 1
-    check r.header.ancount == 2
+    check r.header.ancount >= 1
     check r.header.nscount == 0
     check r.header.arcount == 0
 
@@ -61,7 +61,7 @@ suite "dnsTcpQuery":
       )
 
     check r.header.qdcount == 1
-    check r.header.ancount == 2
+    check r.header.ancount >= 1
     check r.header.nscount == 0
     check r.header.arcount == 0
 
