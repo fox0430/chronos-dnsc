@@ -230,6 +230,7 @@ proc dnsQuery*(
     msg: Message,
     timeout: Duration = 500.milliseconds,
     retransmit = false,
+    tcpTimeout: Duration = 5000.milliseconds,
 ): Future[Message] {.async.} =
   ## Returns a `Message` of the DNS query response performed using the UDP
   ## protocol.
@@ -244,17 +245,21 @@ proc dnsQuery*(
   ## - `retransmit` when `true`, determine the retransmission of the query to
   ##   TCP protocol when the received response is truncated
   ##   (`header.flags.tc == true`).
+  ## - `tcpTimeout` is the maximum waiting time for TCP fallback when
+  ##   `retransmit` is `true`. Defaults to 5000ms since TCP connections
+  ##   typically need more time than UDP.
 
   let qBinMsg = toBinMsg(msg)
 
-  let receivedDataFuture = newFuture[void]()
+  var receivedDataFuture = newFuture[void]("dnsQuery.receive")
   var remoteAddr: TransportAddress
 
   proc datagramDataReceived(
       transp: DatagramTransport, raddr: TransportAddress
   ): Future[void] {.async: (raises: []).} =
     remoteAddr = raddr
-    receivedDataFuture.complete()
+    if not receivedDataFuture.finished:
+      receivedDataFuture.complete()
 
   let sock = newDatagramTransport(datagramDataReceived)
 
@@ -264,29 +269,34 @@ proc dnsQuery*(
     if not await sock.sendTo(address, qBinMsg).withTimeout(timeout):
       raise newException(IOError, "timeout")
 
-    if not (await receivedDataFuture.withTimeout(timeout)):
-      raise newException(IOError, "timeout")
+    let deadline = Moment.now() + timeout
 
-    if remoteAddr.toIpAddress() != address.toIpAddress():
-      raise newException(
-        ResponseIpNotEqualError,
-        "The IP that sent the response is different from the IP that received the query",
-      )
+    while true:
+      let remaining = deadline - Moment.now()
+      if remaining <= ZeroDuration:
+        raise newException(IOError, "timeout")
 
-    if remoteAddr.port != address.port:
-      raise newException(
-        ResponsePortNotEqualError,
-        "The Port that sent the response is different from the Port that received the query",
-      )
+      if not (await receivedDataFuture.withTimeout(remaining)):
+        raise newException(IOError, "timeout")
 
-    let
-      rawResponse = sock.getMessage
-      rBinMsg = bytesToString(rawResponse)
+      if remoteAddr.toIpAddress() == address.toIpAddress() and
+          remoteAddr.port == address.port:
+        let
+          rawResponse = sock.getMessage()
+          rBinMsg = bytesToString(rawResponse)
 
-    result = checkResponse(rBinMsg, msg)
+        try:
+          result = checkResponse(rBinMsg, msg)
+        except ResponseIdNotEqualError, IsNotAnResponseError, OpCodeNotEqualError:
+          receivedDataFuture = newFuture[void]("dnsQuery.receive")
+          continue
 
-    if retransmit and result.header.flags.tc:
-      result = await dnsTcpQuery(client, msg, timeout)
+        if retransmit and result.header.flags.tc:
+          result = await dnsTcpQuery(client, msg, tcpTimeout)
+        return
+
+      # Invalid source address, wait for the next packet
+      receivedDataFuture = newFuture[void]("dnsQuery.receive")
   finally:
     await sock.closeWait
 
