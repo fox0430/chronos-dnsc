@@ -172,6 +172,11 @@ proc dnsTcpQuery*(
   ## - `timeout` is the maximum waiting time, in milliseconds, to connect to the
   ##   DNS server. When it is negative (less than 0), it will try to connect for
   ##   an unlimited time.
+  ##
+  ## **Note:** This proc does not check the response rcode. The caller should
+  ## inspect `result.header.flags.rcode` to handle DNS errors (e.g., NXDomain,
+  ## ServFail). For automatic rcode checking, use the high-level `resolveIpv4`,
+  ## `resolveIpv6`, or `resolveRDns` procs instead.
 
   let
     qBinMsg = toBinTcpMsg(msg)
@@ -248,6 +253,11 @@ proc dnsQuery*(
   ## - `tcpTimeout` is the maximum waiting time for TCP fallback when
   ##   `retransmit` is `true`. Defaults to 5000ms since TCP connections
   ##   typically need more time than UDP.
+  ##
+  ## **Note:** This proc does not check the response rcode. The caller should
+  ## inspect `result.header.flags.rcode` to handle DNS errors (e.g., NXDomain,
+  ## ServFail). For automatic rcode checking, use the high-level `resolveIpv4`,
+  ## `resolveIpv6`, or `resolveRDns` procs instead.
 
   let qBinMsg = toBinMsg(msg)
 
