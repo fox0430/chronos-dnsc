@@ -66,35 +66,6 @@ const
   dnscClient =
     DnsClient(ip: dnscDnsServerIp, port: Port(53), domain: dnscDnsServerIpDomain)
 
-proc initDnsClient(
-    strIp: string, port: Port, raiseExceptions: static[bool]
-): DnsClient =
-  when raiseExceptions:
-    let ip = parseIpAddress(strIp)
-
-    result.ip = strIp
-    result.port = port
-
-    case ip.family
-    of IpAddressFamily.IPv6:
-      result.domain = AF_INET6
-    of IpAddressFamily.IPv4:
-      result.domain = AF_INET
-  else:
-    try:
-      let ip = parseIpAddress(strIp)
-
-      result.ip = strIp
-      result.port = port
-
-      case ip.family
-      of IpAddressFamily.IPv6:
-        result.domain = AF_INET6
-      of IpAddressFamily.IPv4:
-        result.domain = AF_INET
-    except ValueError:
-      result = dnscClient
-
 proc initDnsClient*(strIp: string = dnscDnsServerIp, port: Port = Port(53)): DnsClient =
   ## Returns a created `DnsClient` object.
   ##
@@ -104,7 +75,16 @@ proc initDnsClient*(strIp: string = dnscDnsServerIp, port: Port = Port(53)): Dns
   ## - `port` is a DNS server listening port.
   ##
 
-  initDnsClient(strIp, port, true)
+  let ip = parseIpAddress(strIp)
+
+  result.ip = strIp
+  result.port = port
+
+  case ip.family
+  of IpAddressFamily.IPv6:
+    result.domain = AF_INET6
+  of IpAddressFamily.IPv4:
+    result.domain = AF_INET
 
 proc initSystemDnsClient*(): DnsClient =
   ## Returns a `DnsClient` object, in which the dns server IP is the first one
@@ -128,12 +108,13 @@ proc initSystemDnsClient*(): DnsClient =
   when declared(getSystemDnsServer):
     let ipServDns = getSystemDnsServer()
 
-    if ipServDns == "":
-      result = dnscClient
-    else:
-      result = initDnsClient(ipServDns, Port(53), false)
-  else:
-    result = dnscClient
+    if ipServDns != "":
+      try:
+        return initDnsClient(ipServDns, Port(53))
+      except ValueError:
+        discard
+
+  result = dnscClient
 
 proc getIp*(client: DnsClient): string =
   ## Returns the IP defined in the `client`.
