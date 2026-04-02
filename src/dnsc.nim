@@ -208,7 +208,7 @@ proc dnsTcpQuery*(
         raise newException(IOError, "timeout")
 
   try:
-    if not await transp.write($qBinMsg).withTimeout(timeout):
+    if not await transp.write(qBinMsg).withTimeout(timeout):
       raise newException(IOError, "timeout")
 
     let
