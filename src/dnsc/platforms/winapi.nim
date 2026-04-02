@@ -65,19 +65,21 @@ proc getSystemDnsServer*(): string =
       CatchableError, "Error allocating memory needed to call GetNetworkParams"
     )
 
-  var success = getNetworkParams(buf, bufLen)
+  try:
+    var success = getNetworkParams(buf, bufLen)
 
-  if success == ERROR_BUFFER_OVERFLOW:
-    buf = cast[PFIXED_INFO](realloc0(buf, sizeof(FIXED_INFO), int(bufLen)))
+    if success == ERROR_BUFFER_OVERFLOW:
+      buf = cast[PFIXED_INFO](realloc0(buf, sizeof(FIXED_INFO), int(bufLen)))
 
-    if isNil(buf):
-      raise newException(
-        CatchableError, "Error allocating memory needed to call GetNetworkParams"
-      )
+      if isNil(buf):
+        raise newException(
+          CatchableError, "Error allocating memory needed to call GetNetworkParams"
+        )
 
-    success = getNetworkParams(buf, bufLen)
+      success = getNetworkParams(buf, bufLen)
 
-  if success == ERROR_SUCCESS:
-    result = $cast[cstring](addr buf.dnsServerList.ipAddress.`string`)
-
-  dealloc(buf)
+    if success == ERROR_SUCCESS:
+      result = $cast[cstring](addr buf.dnsServerList.ipAddress.`string`)
+  finally:
+    if not isNil(buf):
+      dealloc(buf)
