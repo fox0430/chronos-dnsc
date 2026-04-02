@@ -100,6 +100,41 @@ suite "error cases":
     expect CatchableError:
       discard await client.dnsTcpQuery(msg, timeout = 50.milliseconds)
 
+suite "prepareRDns":
+  test "IPv4":
+    check prepareRDns("192.168.1.1") == "1.1.168.192.in-addr.arpa"
+
+  test "IPv4 with zeros":
+    check prepareRDns("0.0.0.0") == "0.0.0.0.in-addr.arpa"
+
+  test "IPv6 loopback":
+    check prepareRDns("::1") ==
+      "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.ip6.arpa"
+
+  test "IPv6 full":
+    check prepareRDns("2001:db8::1") ==
+      "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.B.D.0.1.0.0.2.ip6.arpa"
+
+suite "prepareDnsBL":
+  test "IPv4":
+    check prepareDnsBL("192.168.1.1", "zen.spamhaus.org") ==
+      "1.1.168.192.zen.spamhaus.org"
+
+suite "randId":
+  test "returns different values":
+    # Not guaranteed but extremely unlikely to get the same value twice
+    var ids: seq[uint16]
+    for _ in 0 ..< 10:
+      ids.add(randId())
+    check ids.len > 1
+    # At least some should differ
+    var allSame = true
+    for i in 1 ..< ids.len:
+      if ids[i] != ids[0]:
+        allSame = false
+        break
+    check not allSame
+
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
     try:
