@@ -8,7 +8,7 @@ on:
       - 'src/**'
       - 'tests/**'
     branches:
-      - master
+      - main
   pull_request:
     paths:
       - '.github/workflows/test.yaml'
