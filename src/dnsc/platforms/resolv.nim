@@ -41,10 +41,8 @@ const dnscPathResConf* {.strdefine.} = "/etc/resolv.conf"
 var resolvGlobal {.threadvar.}: ResolvConfGlobal
   ## Keeps information from the `dnscPathResConf` file and if it has already been parsed.
 
-proc fileResolvIsUnchanged(): bool =
+proc isUnchanged(fileInfo: FileInfo): bool =
   ## Returns `true` if the `dnscPathResConf` file has not changed since the last parse.
-  let fileInfo = getFileInfo(dnscPathResConf)
-
   result =
     (fileInfo.id.file == resolvGlobal.fileResolvConf.fileId) and
     (fileInfo.size == resolvGlobal.fileResolvConf.size) and
@@ -59,39 +57,41 @@ proc getSystemDnsServer*(): string =
     whiteSpaces = {' ', '\t', '\v', '\r', '\n', '\f'}
     commentsAndWhiteSpaces = comments + whiteSpaces
 
-  if resolvGlobal.initialized and fileResolvIsUnchanged():
+  if not fileExists(dnscPathResConf):
+    return
+
+  let fileInfo = getFileInfo(dnscPathResConf)
+
+  if resolvGlobal.initialized and fileInfo.isUnchanged():
     result = resolvGlobal.nameserver
   else:
-    if fileExists(dnscPathResConf):
-      let fileInfo = getFileInfo(dnscPathResConf)
+    for line in lines(dnscPathResConf):
+      if line == "":
+        continue # skip empty line
+      if line[0] in comments:
+        continue # skip comments
 
-      for line in lines(dnscPathResConf):
-        if line == "":
-          continue # skipe empty line
-        if line[0] in comments:
-          continue # skip comments
+      var strConf: string
 
-        var strConf: string
+      let count = parseUntil(line, strConf, whiteSpaces)
 
-        let count = parseUntil(line, strConf, whiteSpaces)
+      if count > 0:
+        case strConf
+        of "nameserver":
+          if parseUntil(
+            line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)
+          ) > 0:
+            break
+        else:
+          # for now there is no interest in implementing: domain, search and options
+          discard
 
-        if count > 0:
-          case strConf
-          of "nameserver":
-            if parseUntil(
-              line, result, commentsAndWhiteSpaces, count + skipWhitespace(line, count)
-            ) > 0:
-              break
-          else:
-            # for now there is no interest in implementing: domain, search and options
-            discard
-
-      resolvGlobal.nameserver = result
-      resolvGlobal.fileResolvConf.fileId = fileInfo.id.file
-      resolvGlobal.fileResolvConf.size = fileInfo.size
-      resolvGlobal.fileResolvConf.creationTime = fileInfo.creationTime
-      resolvGlobal.fileResolvConf.lastWriteTime = fileInfo.lastWriteTime
-      resolvGlobal.initialized = true
+    resolvGlobal.nameserver = result
+    resolvGlobal.fileResolvConf.fileId = fileInfo.id.file
+    resolvGlobal.fileResolvConf.size = fileInfo.size
+    resolvGlobal.fileResolvConf.creationTime = fileInfo.creationTime
+    resolvGlobal.fileResolvConf.lastWriteTime = fileInfo.lastWriteTime
+    resolvGlobal.initialized = true
 
 when false:
   # Discontinued implementation. Reasons:
