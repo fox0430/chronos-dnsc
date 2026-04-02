@@ -139,7 +139,7 @@ proc getSystemDnsServer*(): string =
 
   if isNil(buf):
     raise newException(
-      CatchableError, "Error allocating memory needed to call GetAdaptersAddresses"
+      OSError, "Error allocating memory needed to call GetAdaptersAddresses"
     )
 
   try:
