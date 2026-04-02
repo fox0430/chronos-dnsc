@@ -148,3 +148,24 @@ suite "resolveIpv4":
     let r = await client.resolveIpv4("nim-lang.org")
 
     check r.sorted == execDig("nim-lang.org")
+
+suite "resolveIpv6":
+  asyncTest "google.com":
+    let client = initDnsClient()
+    let r = await client.resolveIpv6("google.com")
+
+    check r.len >= 1
+
+  asyncTest "NXDOMAIN raises DnsResponseError":
+    let client = initDnsClient()
+
+    expect DnsResponseError:
+      discard await client.resolveIpv6("nonexistent-domain-test-12345.invalid")
+
+suite "resolveRDns":
+  asyncTest "Google public DNS":
+    let client = initDnsClient()
+    let r = await client.resolveRDns("8.8.8.8")
+
+    check r.len >= 1
+    check "dns.google." in r
