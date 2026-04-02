@@ -144,11 +144,9 @@ proc getPort*(client: DnsClient): Port =
   client.port
 
 proc parseBinMessage(msg: BinMsg): Message =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = parseMessage(msg)
-  except Exception:
-    result = Message()
 
 template checkResponse() =
   result = parseBinMessage(rBinMsg)
@@ -167,18 +165,14 @@ template checkResponse() =
     )
 
 proc toBinTcpMsg(msg: Message): string =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = toBinMsg(msg, true)
-  except Exception:
-    result = ""
 
 proc toBinMsg(msg: Message): string =
-  try:
-    {.cast(gcsafe).}:
+  {.cast(gcsafe).}:
+    {.cast(raises: [CatchableError]).}:
       result = toBinMsg(msg, false)
-  except Exception:
-    result = ""
 
 proc dnsTcpQuery*(
     client: DnsClient, msg: Message, timeout: Duration = 5000.milliseconds
@@ -194,11 +188,8 @@ proc dnsTcpQuery*(
   ##   DNS server. When it is negative (less than 0), it will try to connect for
   ##   an unlimited time.
 
-  let qBinMsg = toBinTcpMsg(msg)
-  if qBinMsg.len == 0:
-    raise newException(ValueError, "toBinTcpMsg failed")
-
   let
+    qBinMsg = toBinTcpMsg(msg)
     address = initTAddress(client.ip, client.port)
     transpFut = connect(address)
     transp =
@@ -265,8 +256,6 @@ proc dnsQuery*(
   ##   (`header.flags.tc == true`).
 
   let qBinMsg = toBinMsg(msg)
-  if qBinMsg.len == 0:
-    raise newException(ValueError, "toBinMsg failed")
 
   let receivedDataFuture = newFuture[void]()
   var remoteAddr: TransportAddress
