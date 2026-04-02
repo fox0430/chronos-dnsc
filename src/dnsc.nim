@@ -368,8 +368,6 @@ proc randId*(): uint16 =
   var buf: array[2, byte]
   doAssert urandom(buf)
   result = (uint16(buf[0]) shl 8) or uint16(buf[1])
-  if result == 0:
-    result = 1
 
 proc resolveIpv4*(
     client: DnsClient, domain: string, timeout: Duration = 500.milliseconds
