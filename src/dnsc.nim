@@ -81,7 +81,7 @@ proc initDnsClient*(strIp: string = dnscDnsServerIp, port: Port = Port(53)): Dns
 
   let ip = parseIpAddress(strIp)
 
-  result.ip = strIp
+  result.ip = $ip
   result.port = port
 
   case ip.family
