@@ -335,6 +335,14 @@ template domainNameRDns(strIp, domainV4, domainV6: string) =
 
     result.add(domainV6)
 
+proc checkRcode(msg: Message) =
+  if msg.header.flags.rcode != RCode.NoError:
+    let err = newException(
+      DnsResponseError, "DNS query failed with rcode: " & $msg.header.flags.rcode
+    )
+    err.rcode = msg.header.flags.rcode
+    raise err
+
 proc prepareRDns*(strIp: string): string =
   ## Returns a domain name for reverse DNS lookup.
   ##
@@ -382,12 +390,7 @@ proc resolveIpv4*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode != RCode.NoError:
-    let err = newException(
-      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
-    )
-    err.rcode = rmsg.header.flags.rcode
-    raise err
+  checkRcode(rmsg)
 
   for rr in rmsg.answers:
     if rr.`type` != Type.A or rr.class != Class.IN:
@@ -420,12 +423,7 @@ proc resolveIpv6*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode != RCode.NoError:
-    let err = newException(
-      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
-    )
-    err.rcode = rmsg.header.flags.rcode
-    raise err
+  checkRcode(rmsg)
 
   for rr in rmsg.answers:
     if rr.`type` != Type.AAAA or rr.class != Class.IN:
@@ -459,12 +457,7 @@ proc resolveRDns*(
     )
     rmsg = await dnsQuery(client, msg, timeout, true)
 
-  if rmsg.header.flags.rcode != RCode.NoError:
-    let err = newException(
-      DnsResponseError, "DNS query failed with rcode: " & $rmsg.header.flags.rcode
-    )
-    err.rcode = rmsg.header.flags.rcode
-    raise err
+  checkRcode(rmsg)
 
   for rr in rmsg.answers:
     if rr.name != msg.questions[0].qname or rr.`type` != Type.PTR or rr.class != Class.IN:
