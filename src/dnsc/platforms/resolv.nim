@@ -52,6 +52,11 @@ proc isUnchanged(fileInfo: FileInfo): bool =
 proc getSystemDnsServer*(): string =
   ## Returns the first nameserver found in the `dnscPathResConf` file. Will return `""` if not
   ## found.
+  ##
+  ## The result is cached based on file metadata (ID, size, timestamps). If the file has not
+  ## changed since the last call, the cached result is returned immediately. Note that an empty
+  ## string result is also cached — if no nameserver is found, subsequent calls will return `""`
+  ## until the file changes.
   const
     comments = {';', '#'}
     whiteSpaces = {' ', '\t', '\v', '\r', '\n', '\f'}
