@@ -381,7 +381,7 @@ proc randId*(): uint16 =
 
   var buf: array[2, byte]
   doAssert urandom(buf)
-  result = (uint16(buf[0]) shl 8) or uint16(buf[1])
+  result = fromBytes(uint16, buf, bigEndian)
 
 proc resolveIp(
     client: DnsClient, domain: string, timeout: Duration, qtype: QType
