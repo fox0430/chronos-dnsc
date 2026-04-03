@@ -11,3 +11,8 @@ tests/*
 
 src/dnsc/*
 !src/dnsc/*.*
+!src/dnsc/platforms/
+
+nimble.develop
+nimble.paths
+nimbledeps
