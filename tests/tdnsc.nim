@@ -4,6 +4,9 @@ import pkg/chronos/unittest2/asynctests
 
 import dnsc {.all.}
 
+when defined(linux) or defined(bsd) or defined(dnscUseResolver):
+  import dnsc/platforms/resolv {.all.}
+
 suite "dnsQuery":
   asyncTest "nim-lang.org":
     let
@@ -149,6 +152,115 @@ suite "getUpdatedSystemDnsClient":
     let client = getUpdatedSystemDnsClient()
     let r = await client.resolveIpv4("nim-lang.org")
     check r.len >= 1
+
+when defined(linux) or defined(bsd) or defined(dnscUseResolver):
+  suite "parseResolvConf":
+    test "all directives":
+      let conf = parseResolvConf(
+        "# test resolv.conf\n" & "nameserver 10.0.0.1\n" & "nameserver 10.0.0.2\n" &
+          "nameserver 10.0.0.3\n" & "search example.com foo.org bar.net\n" &
+          "options ndots:3 timeout:10 attempts:5 rotate\n"
+      )
+      check conf.nameservers == @["10.0.0.1", "10.0.0.2", "10.0.0.3"]
+      check conf.domain == ""
+      check conf.search == @["example.com", "foo.org", "bar.net"]
+      check conf.ndots == 3
+      check conf.timeout == 10
+      check conf.attempts == 5
+      check conf.rotate == true
+
+    test "empty content":
+      let conf = parseResolvConf("")
+      check conf.nameservers.len == 0
+      check conf.ndots == 1
+      check conf.timeout == 5
+      check conf.attempts == 2
+
+    test "nameserver exceeds MAXNS":
+      let conf = parseResolvConf(
+        "nameserver 10.0.0.1\n" & "nameserver 10.0.0.2\n" & "nameserver 10.0.0.3\n" &
+          "nameserver 10.0.0.4\n"
+      )
+      check conf.nameservers == @["10.0.0.1", "10.0.0.2", "10.0.0.3"]
+
+    test "domain and search are mutually exclusive":
+      # search after domain: domain is cleared
+      let conf1 = parseResolvConf("domain example.com\n" & "search foo.org bar.net\n")
+      check conf1.domain == ""
+      check conf1.search == @["foo.org", "bar.net"]
+
+      # domain after search: search is cleared
+      let conf2 = parseResolvConf("search foo.org bar.net\n" & "domain example.com\n")
+      check conf2.domain == "example.com"
+      check conf2.search.len == 0
+
+    test "invalid options values are ignored":
+      let conf = parseResolvConf("options ndots:abc timeout:-1 attempts:0\n")
+      check conf.ndots == 1
+      check conf.timeout == 5
+      check conf.attempts == 2
+
+    test "comments with semicolons and hashes":
+      let conf = parseResolvConf(
+        "; semicolon comment\n" & "# hash comment\n" &
+          "nameserver 10.0.0.1 ; inline comment\n"
+      )
+      check conf.nameservers == @["10.0.0.1"]
+
+    test "IPv6 nameservers":
+      let conf = parseResolvConf("nameserver 2001:db8::1\n" & "nameserver ::1\n")
+      check conf.nameservers == @["2001:db8::1", "::1"]
+
+    test "search exceeds MAXDNSRCH":
+      let conf = parseResolvConf("search a.com b.com c.com d.com e.com f.com g.com\n")
+      check conf.search.len == 6
+      check conf.search == @["a.com", "b.com", "c.com", "d.com", "e.com", "f.com"]
+
+    test "directives without values":
+      let conf = parseResolvConf("nameserver\n" & "domain\n" & "search\n" & "options\n")
+      check conf.nameservers.len == 0
+      check conf.domain == ""
+      check conf.search.len == 0
+
+    test "leading whitespace ignores line":
+      let conf = parseResolvConf("  nameserver 10.0.0.1\n" & "nameserver 10.0.0.2\n")
+      check conf.nameservers == @["10.0.0.2"]
+
+    test "domain only":
+      let conf = parseResolvConf("domain example.com\n")
+      check conf.domain == "example.com"
+      check conf.search.len == 0
+
+    test "unknown directives are ignored":
+      let conf = parseResolvConf("sortlist 10.0.0.0/8\n" & "nameserver 10.0.0.1\n")
+      check conf.nameservers == @["10.0.0.1"]
+
+    test "default values":
+      let conf = initResolvConf()
+      check conf.nameservers.len == 0
+      check conf.domain == ""
+      check conf.search.len == 0
+      check conf.ndots == 1
+      check conf.timeout == 5
+      check conf.attempts == 2
+      check conf.rotate == false
+
+  suite "getResolvConf":
+    test "returns valid config from system resolv.conf":
+      let conf = getResolvConf()
+      check conf.nameservers.len >= 1
+      check conf.ndots >= 0
+      check conf.timeout > 0
+      check conf.attempts > 0
+
+    test "getSystemDnsServer returns first nameserver":
+      let
+        conf = getResolvConf()
+        server = getSystemDnsServer()
+      if conf.nameservers.len > 0:
+        check server == conf.nameservers[0]
+      else:
+        check server == ""
 
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
