@@ -502,5 +502,25 @@ proc resolveDnsBL*(
   ##   DNS server or to receive the response from the DNS server. When it is
   ##   negative (less than 0), it will try to connect for an unlimited time or
   ##   to receive the response for an unlimited time.
+  ##
+  ## **Note:** Returns an empty `seq` when the IP is not blacklisted (NXDOMAIN).
+  ## Other DNS errors still raise `DnsResponseError`.
 
-  result = await resolveIpv4(client, prepareDnsBL(strIp, dnsbl), timeout)
+  let
+    domain = prepareDnsBL(strIp, dnsbl)
+    msg = initMessage(
+      initHeader(id = randId(), rd = true), @[initQuestion(domain, QType.A, QClass.IN)]
+    )
+    rmsg = await dnsQuery(client, msg, timeout, true)
+
+  if rmsg.header.flags.rcode == RCode.NameError:
+    return
+
+  checkRcode(rmsg)
+
+  for rr in rmsg.answers:
+    if rr.class != Class.IN or rr.`type` != Type.A:
+      continue
+    let ip =
+      IpAddress(family: IpAddressFamily.IPv4, address_v4: RDataA(rr.rdata).address)
+    add(result, $ip)
