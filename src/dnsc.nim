@@ -62,32 +62,18 @@ const
   dnscClient =
     DnsClient(ip: dnscDnsServerIp, port: Port(53), domain: dnscDnsServerIpDomain)
 
-proc initDnsClient*(strIp: string = dnscDnsServerIp, port: Port = Port(53)): DnsClient =
+proc initDnsClient*(strIp: string = "", port: Port = Port(53)): DnsClient =
   ## Returns a created `DnsClient` object.
   ##
+  ## If `strIp` is empty (default), uses the system DNS server. If the system
+  ## DNS server cannot be determined, falls back to `dnscDnsServerIp`.
+  ##
   ## **Parameters**
-  ## - `ip` is a DNS server IP. It can be IPv4 or IPv6. It cannot be a domain
-  ##   name.
+  ## - `strIp` is a DNS server IP. It can be IPv4 or IPv6. It cannot be a domain
+  ##   name. If empty, the system DNS server is used.
   ## - `port` is a DNS server listening port.
   ##
-
-  let ip = parseIpAddress(strIp)
-
-  result.ip = $ip
-  result.port = port
-
-  case ip.family
-  of IpAddressFamily.IPv6:
-    result.domain = AF_INET6
-  of IpAddressFamily.IPv4:
-    result.domain = AF_INET
-
-proc initSystemDnsClient*(): DnsClient =
-  ## Returns a `DnsClient` object, in which the dns server IP is the first one
-  ## used by the system. If it is not possible to determine a dns server IP by
-  ## the system, it will be initialized with `dnscDnsServerIp`.
-  ##
-  ## Currently implemented for:
+  ## Currently system DNS detection is implemented for:
   ## - `Windows<ndns/platforms/winapi.html>`_
   ## - `Linux<ndns/platforms/resolv.html>`_
   ## - `BSD<ndns/platforms/resolv.html>`_
@@ -98,19 +84,25 @@ proc initSystemDnsClient*(): DnsClient =
   ## - It just creates a `DnsClient` object with the IP used by the system. Does
   ##   not use the system's native DNS resolution implementation unless the
   ##   system provides a proxy.
-  ## - The `ip` field in the `DnsClient` object does not change automatically if
-  ##   the IP used by the system changes.
 
-  when declared(getSystemDnsServer):
-    let ipServDns = getSystemDnsServer()
+  var ipStr = strIp
 
-    if ipServDns != "":
-      try:
-        return initDnsClient(ipServDns, Port(53))
-      except ValueError:
-        discard
+  if ipStr == "":
+    when declared(getSystemDnsServer):
+      ipStr = getSystemDnsServer()
+    if ipStr == "":
+      ipStr = dnscDnsServerIp
 
-  result = dnscClient
+  let ip = parseIpAddress(ipStr)
+
+  result.ip = $ip
+  result.port = port
+
+  case ip.family
+  of IpAddressFamily.IPv6:
+    result.domain = AF_INET6
+  of IpAddressFamily.IPv4:
+    result.domain = AF_INET
 
 proc getIp*(client: DnsClient): string =
   ## Returns the IP defined in the `client`.

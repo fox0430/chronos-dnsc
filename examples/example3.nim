@@ -3,6 +3,6 @@
 
 import dnsc
 
-let client = initSystemDnsClient()
+let client = initDnsClient()
 
 echo waitFor resolveIpv4(client, "nim-lang.org")
