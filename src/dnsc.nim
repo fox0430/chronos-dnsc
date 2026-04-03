@@ -36,14 +36,6 @@ type
   UnexpectedDisconnectionError* = object of CatchableError
     ## Raised if an unexpected disconnect occurs (only TCP).
 
-  ResponseIpNotEqualError* = object of CatchableError
-    ## Raised if the IP that sent the response is different from the IP that
-    ## received the query (only UDP).
-
-  ResponsePortNotEqualError* = object of CatchableError
-    ## Raised if the Port that sent the response is different from the Port that
-    ## received the query (only UDP).
-
   ResponseIdNotEqualError* = object of CatchableError
     ## Raised if the query ID does not match the response ID.
 
