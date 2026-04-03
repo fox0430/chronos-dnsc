@@ -59,11 +59,11 @@
     <summary><a class="reference reference-toplevel" href="#7" id="57">Types</a></summary>
     <ul class="simple simple-toc-section">
       <li><a class="reference" href="#DnsClient" title="DnsClient = object">DnsClient</a></li>
+<li><a class="reference" href="#DnsResponseError" title="DnsResponseError = object of CatchableError
+  rcode*: RCode">DnsResponseError</a></li>
 <li><a class="reference" href="#IsNotAnResponseError" title="IsNotAnResponseError = object of CatchableError">IsNotAnResponseError</a></li>
 <li><a class="reference" href="#OpCodeNotEqualError" title="OpCodeNotEqualError = object of CatchableError">OpCodeNotEqualError</a></li>
 <li><a class="reference" href="#ResponseIdNotEqualError" title="ResponseIdNotEqualError = object of CatchableError">ResponseIdNotEqualError</a></li>
-<li><a class="reference" href="#ResponseIpNotEqualError" title="ResponseIpNotEqualError = object of CatchableError">ResponseIpNotEqualError</a></li>
-<li><a class="reference" href="#ResponsePortNotEqualError" title="ResponsePortNotEqualError = object of CatchableError">ResponsePortNotEqualError</a></li>
 <li><a class="reference" href="#UnexpectedDisconnectionError" title="UnexpectedDisconnectionError = object of CatchableError">UnexpectedDisconnectionError</a></li>
 
     </ul>
@@ -73,7 +73,7 @@
   <details open>
     <summary><a class="reference reference-toplevel" href="#10" id="60">Consts</a></summary>
     <ul class="simple simple-toc-section">
-      <li><a class="reference" href="#ndnsDnsServerIp" title="ndnsDnsServerIp {.strdefine.} = &quot;8.8.8.8&quot;">ndnsDnsServerIp</a></li>
+      <li><a class="reference" href="#dnscDnsServerIp" title="dnscDnsServerIp {.strdefine.} = &quot;8.8.8.8&quot;">dnscDnsServerIp</a></li>
 
     </ul>
   </details>
@@ -83,9 +83,11 @@
     <summary><a class="reference reference-toplevel" href="#12" id="62">Procs</a></summary>
     <ul class="simple simple-toc-section">
       <ul class="simple nested-toc-section">dnsQuery
-  <li><a class="reference" href="#dnsQuery%2CDnsClient%2CMessage%2CDuration" title="dnsQuery(client: DnsClient; msg: Message; timeout: Duration = 500.milliseconds;
-         retransmit = false): Future[Message]">dnsQuery(client: DnsClient; msg: Message; timeout: Duration = 500.milliseconds;
-         retransmit = false): Future[Message]</a></li>
+  <li><a class="reference" href="#dnsQuery%2CDnsClient%2CMessage%2CDuration%2CDuration" title="dnsQuery(client: DnsClient; msg: Message; timeout: Duration = 500.milliseconds;
+         retransmit = false; tcpTimeout: Duration = 5000.milliseconds): Future[
+    Message]">dnsQuery(client: DnsClient; msg: Message; timeout: Duration = 500.milliseconds;
+         retransmit = false; tcpTimeout: Duration = 5000.milliseconds): Future[
+    Message]</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">dnsTcpQuery
@@ -102,12 +104,12 @@
   <li><a class="reference" href="#getPort%2CDnsClient" title="getPort(client: DnsClient): Port">getPort(client: DnsClient): Port</a></li>
 
 </ul>
-<ul class="simple nested-toc-section">initDnsClient
-  <li><a class="reference" href="#initDnsClient%2Cstring%2CPort" title="initDnsClient(strIp: string = ndnsDnsServerIp; port: Port = Port(53)): DnsClient">initDnsClient(strIp: string = ndnsDnsServerIp; port: Port = Port(53)): DnsClient</a></li>
+<ul class="simple nested-toc-section">getUpdatedSystemDnsClient
+  <li><a class="reference" href="#getUpdatedSystemDnsClient%2CPort" title="getUpdatedSystemDnsClient(port: Port = Port(53)): DnsClient">getUpdatedSystemDnsClient(port: Port = Port(53)): DnsClient</a></li>
 
 </ul>
-<ul class="simple nested-toc-section">initSystemDnsClient
-  <li><a class="reference" href="#initSystemDnsClient" title="initSystemDnsClient(): DnsClient">initSystemDnsClient(): DnsClient</a></li>
+<ul class="simple nested-toc-section">initDnsClient
+  <li><a class="reference" href="#initDnsClient%2Cstring%2CPort" title="initDnsClient(strIp: string = &quot;&quot;; port: Port = Port(53)): DnsClient">initDnsClient(strIp: string = &quot;&quot;; port: Port = Port(53)): DnsClient</a></li>
 
 </ul>
 <ul class="simple nested-toc-section">prepareDnsBL
@@ -176,6 +178,15 @@
     
   </dd>
 </div>
+<div id="DnsResponseError">
+  <dt><pre><a href="dnsc.html#DnsResponseError"><span class="Identifier">DnsResponseError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span>
+  <span class="Identifier">rcode</span><span class="Operator">*</span><span class="Other">:</span> <span class="Identifier">RCode</span></pre></dt>
+  <dd>
+    
+    Raised if the DNS response contains an error (rcode != NoError).
+    
+  </dd>
+</div>
 <div id="IsNotAnResponseError">
   <dt><pre><a href="dnsc.html#IsNotAnResponseError"><span class="Identifier">IsNotAnResponseError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
   <dd>
@@ -200,22 +211,6 @@
     
   </dd>
 </div>
-<div id="ResponseIpNotEqualError">
-  <dt><pre><a href="dnsc.html#ResponseIpNotEqualError"><span class="Identifier">ResponseIpNotEqualError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
-  <dd>
-    
-    Raised if the IP that sent the response is different from the IP that received the query (only UDP).
-    
-  </dd>
-</div>
-<div id="ResponsePortNotEqualError">
-  <dt><pre><a href="dnsc.html#ResponsePortNotEqualError"><span class="Identifier">ResponsePortNotEqualError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
-  <dd>
-    
-    Raised if the Port that sent the response is different from the Port that received the query (only UDP).
-    
-  </dd>
-</div>
 <div id="UnexpectedDisconnectionError">
   <dt><pre><a href="dnsc.html#UnexpectedDisconnectionError"><span class="Identifier">UnexpectedDisconnectionError</span></a> <span class="Other">=</span> <span class="Keyword">object</span> <span class="Keyword">of</span> <span class="Identifier">CatchableError</span></pre></dt>
   <dd>
@@ -230,11 +225,11 @@
 <div class="section" id="10">
   <h1><a class="toc-backref" href="#10">Consts</a></h1>
   <dl class="item">
-    <div id="ndnsDnsServerIp">
-  <dt><pre><a href="dnsc.html#ndnsDnsServerIp"><span class="Identifier">ndnsDnsServerIp</span></a> {.<span class="Identifier">strdefine</span>.} <span class="Other">=</span> <span class="StringLit">&quot;8.8.8.8&quot;</span></pre></dt>
+    <div id="dnscDnsServerIp">
+  <dt><pre><a href="dnsc.html#dnscDnsServerIp"><span class="Identifier">dnscDnsServerIp</span></a> {.<span class="Identifier">strdefine</span>.} <span class="Other">=</span> <span class="StringLit">&quot;8.8.8.8&quot;</span></pre></dt>
   <dd>
     
-    Default dns server ip for queries. You can change by compiling with <tt class="docutils literal"><span class="pre"><span class="Operator">-</span><span class="Identifier">d</span><span class="Punctuation">:</span><span class="Identifier">ndnsDnsServerIp</span><span class="Operator">=</span><span class="FloatNumber">1.1</span><span class="Operator">.</span><span class="FloatNumber">1.1</span></span></tt>.
+    Default dns server ip for queries. You can change by compiling with <tt class="docutils literal"><span class="pre"><span class="Operator">-</span><span class="Identifier">d</span><span class="Punctuation">:</span><span class="Identifier">dnscDnsServerIp</span><span class="Operator">=</span><span class="FloatNumber">1.1</span><span class="Operator">.</span><span class="FloatNumber">1.1</span></span></tt>.
     
   </dd>
 </div>
@@ -245,11 +240,11 @@
   <h1><a class="toc-backref" href="#12">Procs</a></h1>
   <dl class="item">
     <div id="dnsQuery-procs-all">
-  <div id="dnsQuery,DnsClient,Message,Duration">
-  <dt><pre><span class="Keyword">proc</span> <a href="#dnsQuery%2CDnsClient%2CMessage%2CDuration"><span class="Identifier">dnsQuery</span></a><span class="Other">(</span><span class="Identifier">client</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a><span class="Other">;</span> <span class="Identifier">msg</span><span class="Other">:</span> <span class="Identifier">Message</span><span class="Other">;</span>
-              <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">Duration</span> <span class="Other">=</span> <span class="DecNumber">500</span><span class="Other">.</span><span class="Identifier">milliseconds</span><span class="Other">;</span> <span class="Identifier">retransmit</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span>
-    <span class="Identifier">Message</span><span class="Other">]</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span>
-               <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <div id="dnsQuery,DnsClient,Message,Duration,Duration">
+  <dt><pre><span class="Keyword">proc</span> <a href="#dnsQuery%2CDnsClient%2CMessage%2CDuration%2CDuration"><span class="Identifier">dnsQuery</span></a><span class="Other">(</span><span class="Identifier">client</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a><span class="Other">;</span> <span class="Identifier">msg</span><span class="Other">:</span> <span class="Identifier">Message</span><span class="Other">;</span>
+              <span class="Identifier">timeout</span><span class="Other">:</span> <span class="Identifier">Duration</span> <span class="Other">=</span> <span class="DecNumber">500</span><span class="Other">.</span><span class="Identifier">milliseconds</span><span class="Other">;</span> <span class="Identifier">retransmit</span> <span class="Other">=</span> <span class="Identifier">false</span><span class="Other">;</span>
+              <span class="Identifier">tcpTimeout</span><span class="Other">:</span> <span class="Identifier">Duration</span> <span class="Other">=</span> <span class="DecNumber">5000</span><span class="Other">.</span><span class="Identifier">milliseconds</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">Future</span><span class="Other">[</span><span class="Identifier">Message</span><span class="Other">]</span> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">stackTrace</span><span class="Other">:</span> <span class="DecNumber">false</span><span class="Other">,</span> <span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">gcsafe</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">RootEffect</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     <p>Returns a <tt class="docutils literal"><span class="pre"><span class="Identifier">Message</span></span></tt> of the DNS query response performed using the UDP protocol.</p>
@@ -258,7 +253,9 @@
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">msg</span></span></tt> is a <tt class="docutils literal"><span class="pre"><span class="Identifier">Message</span></span></tt> object that contains the DNS query.</li>
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">timeout</span></span></tt> is the maximum waiting time, in milliseconds, to receive the response from the DNS server. When it is negative (less than 0), it will try to receive the response for an unlimited time.</li>
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">retransmit</span></span></tt> when <tt class="docutils literal"><span class="pre"><span class="Identifier">true</span></span></tt>, determine the retransmission of the query to TCP protocol when the received response is truncated (<tt class="docutils literal"><span class="pre"><span class="Identifier">header</span><span class="Operator">.</span><span class="Identifier">flags</span><span class="Operator">.</span><span class="Identifier">tc</span> <span class="Operator">==</span> <span class="Identifier">true</span></span></tt>).</li>
+<li><tt class="docutils literal"><span class="pre"><span class="Identifier">tcpTimeout</span></span></tt> is the maximum waiting time for TCP fallback when <tt class="docutils literal"><span class="pre"><span class="Identifier">retransmit</span></span></tt> is <tt class="docutils literal"><span class="pre"><span class="Identifier">true</span></span></tt>. Defaults to 5000ms since TCP connections typically need more time than UDP.</li>
 </ul>
+<p><strong>Note:</strong> This proc does not check the response rcode. The caller should inspect <tt class="docutils literal"><span class="pre"><span class="Identifier">result</span><span class="Operator">.</span><span class="Identifier">header</span><span class="Operator">.</span><span class="Identifier">flags</span><span class="Operator">.</span><span class="Identifier">rcode</span></span></tt> to handle DNS errors (e.g., NXDomain, ServFail). For automatic rcode checking, use the high-level <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveIpv4</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveIpv6</span></span></tt>, or <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveRDns</span></span></tt> procs instead.</p>
 
     
   </dd>
@@ -278,6 +275,7 @@
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">msg</span></span></tt> is a <tt class="docutils literal"><span class="pre"><span class="Identifier">Message</span></span></tt> object that contains the DNS query.</li>
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">timeout</span></span></tt> is the maximum waiting time, in milliseconds, to connect to the DNS server. When it is negative (less than 0), it will try to connect for an unlimited time.</li>
 </ul>
+<p><strong>Note:</strong> This proc does not check the response rcode. The caller should inspect <tt class="docutils literal"><span class="pre"><span class="Identifier">result</span><span class="Operator">.</span><span class="Identifier">header</span><span class="Operator">.</span><span class="Identifier">flags</span><span class="Operator">.</span><span class="Identifier">rcode</span></span></tt> to handle DNS errors (e.g., NXDomain, ServFail). For automatic rcode checking, use the high-level <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveIpv4</span></span></tt>, <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveIpv6</span></span></tt>, or <tt class="docutils literal"><span class="pre"><span class="Identifier">resolveRDns</span></span></tt> procs instead.</p>
 
     
   </dd>
@@ -306,39 +304,42 @@
 </div>
 
 </div>
-<div id="initDnsClient-procs-all">
-  <div id="initDnsClient,string,Port">
-  <dt><pre><span class="Keyword">proc</span> <a href="#initDnsClient%2Cstring%2CPort"><span class="Identifier">initDnsClient</span></a><span class="Other">(</span><span class="Identifier">strIp</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="Identifier">ndnsDnsServerIp</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">Port</span> <span class="Other">=</span> <span class="Identifier">Port</span><span class="Other">(</span><span class="DecNumber">53</span><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a> {.
-    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<div id="getUpdatedSystemDnsClient-procs-all">
+  <div id="getUpdatedSystemDnsClient,Port">
+  <dt><pre><span class="Keyword">proc</span> <a href="#getUpdatedSystemDnsClient%2CPort"><span class="Identifier">getUpdatedSystemDnsClient</span></a><span class="Other">(</span><span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">Port</span> <span class="Other">=</span> <span class="Identifier">Port</span><span class="Other">(</span><span class="DecNumber">53</span><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">OSError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    <p>Returns a created <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> object.</p>
-<p><strong>Parameters</strong></p>
-<ul class="simple"><li><tt class="docutils literal"><span class="pre"><span class="Identifier">ip</span></span></tt> is a DNS server IP. It can be IPv4 or IPv6. It cannot be a domain name.</li>
-<li><tt class="docutils literal"><span class="pre"><span class="Identifier">port</span></span></tt> is a DNS server listening port.</li>
-</ul>
+    <p>Returns a <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> reflecting the current system DNS server.</p>
+<p>On Linux/BSD, this leverages cached file metadata detection, so repeated calls are cheap when <tt class="docutils literal"><span class="pre"><span class="Operator">/</span><span class="Identifier">etc</span><span class="Operator">/</span><span class="Identifier">resolv</span><span class="Operator">.</span><span class="Identifier">conf</span></span></tt> hasn't changed. On Windows, this queries the system API each time.</p>
+<p>If the system DNS server cannot be determined, falls back to <tt class="docutils literal"><span class="pre"><span class="Identifier">dnscDnsServerIp</span></span></tt>.</p>
+<p>This is useful for long-lived applications that need to track system DNS configuration changes.</p>
 
     
   </dd>
 </div>
 
 </div>
-<div id="initSystemDnsClient-procs-all">
-  <div id="initSystemDnsClient">
-  <dt><pre><span class="Keyword">proc</span> <a href="#initSystemDnsClient"><span class="Identifier">initSystemDnsClient</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">CatchableError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span>
-                                        <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+<div id="initDnsClient-procs-all">
+  <div id="initDnsClient,string,Port">
+  <dt><pre><span class="Keyword">proc</span> <a href="#initDnsClient%2Cstring%2CPort"><span class="Identifier">initDnsClient</span></a><span class="Other">(</span><span class="Identifier">strIp</span><span class="Other">:</span> <span class="Identifier">string</span> <span class="Other">=</span> <span class="StringLit">&quot;&quot;</span><span class="Other">;</span> <span class="Identifier">port</span><span class="Other">:</span> <span class="Identifier">Port</span> <span class="Other">=</span> <span class="Identifier">Port</span><span class="Other">(</span><span class="DecNumber">53</span><span class="Other">)</span><span class="Other">)</span><span class="Other">:</span> <a href="dnsc.html#DnsClient"><span class="Identifier">DnsClient</span></a> {.
+    <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Identifier">OSError</span><span class="Other">,</span> <span class="Identifier">ValueError</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
-    <p>Returns a <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> object, in which the dns server IP is the first one used by the system. If it is not possible to determine a dns server IP by the system, it will be initialized with <tt class="docutils literal"><span class="pre"><span class="Identifier">ndnsDnsServerIp</span></span></tt>.</p>
-<p>Currently implemented for:</p>
+    <p>Returns a created <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> object.</p>
+<p>If <tt class="docutils literal"><span class="pre"><span class="Identifier">strIp</span></span></tt> is empty (default), uses the system DNS server. If the system DNS server cannot be determined, falls back to <tt class="docutils literal"><span class="pre"><span class="Identifier">dnscDnsServerIp</span></span></tt>.</p>
+<p><strong>Parameters</strong></p>
+<ul class="simple"><li><tt class="docutils literal"><span class="pre"><span class="Identifier">strIp</span></span></tt> is a DNS server IP. It can be IPv4 or IPv6. It cannot be a domain name. If empty, the system DNS server is used.</li>
+<li><tt class="docutils literal"><span class="pre"><span class="Identifier">port</span></span></tt> is a DNS server listening port.</li>
+</ul>
+<p>Currently system DNS detection is implemented for:</p>
 <ul class="simple"><li><a class="reference external" href="ndns/platforms/winapi.html">Windows</a></li>
 <li><a class="reference external" href="ndns/platforms/resolv.html">Linux</a></li>
 <li><a class="reference external" href="ndns/platforms/resolv.html">BSD</a></li>
 </ul>
 <p>Notes:</p>
-<ul class="simple"><li>If your platform is not listed above and uses a <a class="reference external" href="ndns/platforms/resolv.html">resolver configuration file</a>, compile with <tt class="docutils literal"><span class="pre"><span class="Operator">-</span><span class="Identifier">d</span><span class="Punctuation">:</span><span class="Identifier">ndnsUseResolver</span></span></tt>.</li>
+<ul class="simple"><li>If your platform is not listed above and uses a <a class="reference external" href="ndns/platforms/resolv.html">resolver configuration file</a>, compile with <tt class="docutils literal"><span class="pre"><span class="Operator">-</span><span class="Identifier">d</span><span class="Punctuation">:</span><span class="Identifier">dnscUseResolver</span></span></tt>.</li>
 <li>It just creates a <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> object with the IP used by the system. Does not use the system's native DNS resolution implementation unless the system provides a proxy.</li>
-<li>The <tt class="docutils literal"><span class="pre"><span class="Identifier">ip</span></span></tt> field in the <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsClient</span></span></tt> object does not change automatically if the IP used by the system changes.</li>
 </ul>
 
     
@@ -381,7 +382,7 @@
 </div>
 <div id="randId-procs-all">
   <div id="randId">
-  <dt><pre><span class="Keyword">proc</span> <a href="#randId"><span class="Identifier">randId</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">uint16</span> {.<span class="Identifier">inline</span><span class="Other">,</span> <span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
+  <dt><pre><span class="Keyword">proc</span> <a href="#randId"><span class="Identifier">randId</span></a><span class="Other">(</span><span class="Other">)</span><span class="Other">:</span> <span class="Identifier">uint16</span> {.<span><span class="Other pragmadots">...</span></span><span class="pragmawrap"><span class="Identifier">raises</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">tags</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span><span class="Other">,</span> <span class="Identifier">forbids</span><span class="Other">:</span> <span class="Other">[</span><span class="Other">]</span></span>.}</pre></dt>
   <dd>
     
     Returns a <tt class="docutils literal"><span class="pre"><span class="Identifier">uint16</span></span></tt>, randomly generated, to be used as an id.
@@ -404,6 +405,7 @@
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">dnsbl</span></span></tt> is the domain name for DnsBL queries.</li>
 <li><tt class="docutils literal"><span class="pre"><span class="Identifier">timeout</span></span></tt> is the maximum waiting time, in milliseconds, to connect to the DNS server or to receive the response from the DNS server. When it is negative (less than 0), it will try to connect for an unlimited time or to receive the response for an unlimited time.</li>
 </ul>
+<p><strong>Note:</strong> Returns an empty <tt class="docutils literal"><span class="pre"><span class="Identifier">seq</span></span></tt> when the IP is not blacklisted (NXDOMAIN). Other DNS errors still raise <tt class="docutils literal"><span class="pre"><span class="Identifier">DnsResponseError</span></span></tt>.</p>
 
     
   </dd>
@@ -477,7 +479,7 @@
       <div class="twelve-columns footer">
         <span class="nim-sprite"></span>
         <br>
-        <small style="color: var(--hint);">Made with Nim. Generated: 2026-03-17 10:04:16 UTC</small>
+        <small style="color: var(--hint);">Made with Nim. Generated: 2026-04-03 07:56:20 UTC</small>
       </div>
     </div>
   </div>
