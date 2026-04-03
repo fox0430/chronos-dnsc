@@ -4,7 +4,7 @@ on:
   push:
     paths:
       - '.github/workflows/test.yaml'
-      - 'dnsc.nimble'
+      - 'chronos_dnsc.nimble'
       - 'src/**'
       - 'tests/**'
     branches:
@@ -12,7 +12,7 @@ on:
   pull_request:
     paths:
       - '.github/workflows/test.yaml'
-      - 'dnsc.nimble'
+      - 'chronos_dnsc.nimble'
       - 'src/**'
       - 'tests/**'
 
