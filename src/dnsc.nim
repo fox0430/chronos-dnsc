@@ -112,6 +112,30 @@ proc initSystemDnsClient*(): DnsClient =
 
   result = dnscClient
 
+proc getUpdatedSystemDnsClient*(port: Port = Port(53)): DnsClient =
+  ## Returns a `DnsClient` reflecting the current system DNS server.
+  ##
+  ## On Linux/BSD, this leverages cached file metadata detection, so repeated
+  ## calls are cheap when `/etc/resolv.conf` hasn't changed. On Windows, this
+  ## queries the system API each time.
+  ##
+  ## If the system DNS server cannot be determined, falls back to
+  ## `dnscDnsServerIp`.
+  ##
+  ## This is useful for long-lived applications that need to track system DNS
+  ## configuration changes.
+
+  when declared(getSystemDnsServer):
+    let ipServDns = getSystemDnsServer()
+
+    if ipServDns != "":
+      try:
+        return initDnsClient(ipServDns, port)
+      except ValueError:
+        discard
+
+  result = DnsClient(ip: dnscDnsServerIp, port: port, domain: dnscDnsServerIpDomain)
+
 proc getIp*(client: DnsClient): string =
   ## Returns the IP defined in the `client`.
   client.ip

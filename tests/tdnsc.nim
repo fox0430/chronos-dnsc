@@ -135,6 +135,21 @@ suite "randId":
         break
     check not allSame
 
+suite "getUpdatedSystemDnsClient":
+  test "returns a valid client":
+    let client = getUpdatedSystemDnsClient()
+    check client.getIp().len > 0
+    check client.getPort() == Port(53)
+
+  test "custom port":
+    let client = getUpdatedSystemDnsClient(Port(5353))
+    check client.getPort() == Port(5353)
+
+  asyncTest "can resolve with returned client":
+    let client = getUpdatedSystemDnsClient()
+    let r = await client.resolveIpv4("nim-lang.org")
+    check r.len >= 1
+
 suite "resolveIpv4":
   proc execDig(domain: string): seq[string] {.raises: [].} =
     try:
