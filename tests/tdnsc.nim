@@ -144,10 +144,14 @@ suite "resolveIpv4":
       result = @[]
 
   asyncTest "nim-lang.org":
-    let client = initDnsClient()
-    let r = await client.resolveIpv4("nim-lang.org")
+    let expected = execDig("nim-lang.org")
+    if expected.len == 0:
+      skip()
+    else:
+      let client = initDnsClient()
+      let r = await client.resolveIpv4("nim-lang.org")
 
-    check r.sorted == execDig("nim-lang.org")
+      check r.sorted == expected
 
 suite "resolveIpv6":
   asyncTest "google.com":
