@@ -282,10 +282,10 @@ proc dnsQuery*(
   let address = initTAddress(client.ip, client.port)
 
   try:
+    let deadline = Moment.now() + timeout
+
     if not await sock.sendTo(address, qBinMsg).withTimeout(timeout):
       raise newException(IOError, "timeout")
-
-    let deadline = Moment.now() + timeout
 
     while true:
       let remaining = deadline - Moment.now()
