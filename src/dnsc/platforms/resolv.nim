@@ -16,7 +16,7 @@
 ##
 ## References:
 ## - https://man7.org/linux/man-pages/man5/resolv.conf.5.html
-import std/[os, parseutils, strutils, times]
+import std/[net, os, parseutils, strutils, times]
 
 const
   dnscPathResConf* {.strdefine.} = "/etc/resolv.conf"
@@ -153,7 +153,11 @@ proc parseResolvConf*(content: string): ResolvConf =
         if result.nameservers.len < MAXNS:
           var ns: string
           if parseUntil(line, ns, commentsAndWhiteSpaces, valueStart) > 0:
-            result.nameservers.add(ns)
+            try:
+              discard parseIpAddress(ns)
+              result.nameservers.add(ns)
+            except ValueError:
+              discard
       of "domain":
         var dom: string
         if parseUntil(line, dom, commentsAndWhiteSpaces, valueStart) > 0:
