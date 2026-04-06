@@ -191,6 +191,7 @@ proc dnsTcpQuery*(
   let
     qBinMsg = toBinTcpMsg(msg)
     address = initTAddress(client.ip, client.port)
+    deadline = Moment.now() + timeout
     transpFut = connect(address)
     transp =
       if await transpFut.withTimeout(timeout):
@@ -199,16 +200,22 @@ proc dnsTcpQuery*(
         raise newException(IOError, "timeout")
 
   try:
-    if not await transp.write(qBinMsg).withTimeout(timeout):
-      raise newException(IOError, "timeout")
+    block:
+      let remaining = deadline - Moment.now()
+      if remaining <= ZeroDuration:
+        raise newException(IOError, "timeout")
+      if not await transp.write(qBinMsg).withTimeout(remaining):
+        raise newException(IOError, "timeout")
 
-    let
-      lenRecvFut = transp.read(2)
-      lenRecv =
-        if await lenRecvFut.withTimeout(timeout):
-          lenRecvFut.read
-        else:
-          raise newException(IOError, "timeout")
+    let lenRecv = block:
+      let remaining = deadline - Moment.now()
+      if remaining <= ZeroDuration:
+        raise newException(IOError, "timeout")
+      let lenRecvFut = transp.read(2)
+      if await lenRecvFut.withTimeout(remaining):
+        lenRecvFut.read
+      else:
+        raise newException(IOError, "timeout")
 
     if lenRecv.len < 2:
       raise newException(
@@ -229,10 +236,14 @@ proc dnsTcpQuery*(
       rBinMsg = newStringOfCap(remainderRecv)
 
     while remainderRecv > 0:
+      let remaining = deadline - Moment.now()
+      if remaining <= ZeroDuration:
+        raise newException(IOError, "timeout")
+
       let
         recvFut = transp.read(remainderRecv)
         recv =
-          if await recvFut.withTimeout(timeout):
+          if await recvFut.withTimeout(remaining):
             recvFut.read
           else:
             raise newException(IOError, "timeout")
